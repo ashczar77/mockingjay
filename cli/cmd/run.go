@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/ashczar77/mockingjay/internal/config"
+	"github.com/ashczar77/mockingjay/internal/test"
 	"github.com/spf13/cobra"
 )
 
@@ -59,28 +59,33 @@ func runTests() error {
 	fmt.Printf("🎯 Running %d scenario(s)...\n", len(scenarios))
 	fmt.Println()
 
+	executor := test.New(cfg)
+	results := executor.RunAll(scenarios)
+
 	passed := 0
 	failed := 0
+	var totalLatency int64
 
-	for i, s := range scenarios {
-		fmt.Printf("  [%d/%d] %s", i+1, len(scenarios), s.Name)
-		if s.Description != "" {
-			fmt.Printf(" - %s", s.Description)
+	for i, r := range results {
+		fmt.Printf("  [%d/%d] %s", i+1, len(results), r.Scenario)
+		if r.Passed {
+			fmt.Printf(" ✓ PASS (latency: %dms)\n", r.Metrics.Latency.Milliseconds())
+			passed++
+			totalLatency += r.Metrics.Latency.Milliseconds()
+		} else {
+			fmt.Printf(" ✗ FAIL (%s)\n", r.Error)
+			failed++
 		}
-		fmt.Print("... ")
-
-		time.Sleep(500 * time.Millisecond)
-
-		// TODO: Actually execute the test
-		fmt.Println("✓ PASS")
-		passed++
 	}
 
 	fmt.Println()
 	fmt.Println("📊 Results:")
-	fmt.Printf("  Tests run: %d\n", len(scenarios))
+	fmt.Printf("  Tests run: %d\n", len(results))
 	fmt.Printf("  Passed: %d\n", passed)
 	fmt.Printf("  Failed: %d\n", failed)
+	if passed > 0 {
+		fmt.Printf("  Avg latency: %dms\n", totalLatency/int64(passed))
+	}
 	fmt.Println()
 
 	if failed > 0 {
