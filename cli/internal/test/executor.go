@@ -1,9 +1,12 @@
 package test
 
 import (
+	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ashczar77/mockingjay/internal/config"
+	"github.com/ashczar77/mockingjay/internal/voice"
 )
 
 // Result represents a test execution result
@@ -25,11 +28,20 @@ type Metrics struct {
 // Executor runs test scenarios
 type Executor struct {
 	config *config.Config
+	client *voice.Client
 }
 
 // New creates a new test executor
 func New(cfg *config.Config) *Executor {
-	return &Executor{config: cfg}
+	var client *voice.Client
+	if cfg.Agent.Endpoint != "" {
+		client = voice.NewClient(cfg.Agent.Endpoint)
+	}
+	
+	return &Executor{
+		config: cfg,
+		client: client,
+	}
 }
 
 // Run executes a single scenario
@@ -46,20 +58,33 @@ func (e *Executor) Run(scenario config.Scenario) Result {
 
 	// Execute each step
 	for i, step := range scenario.Steps {
-		stepStart := time.Now()
-		
-		// TODO: Actually call the agent
-		// For now, simulate the call
-		time.Sleep(100 * time.Millisecond)
-		
-		stepLatency := time.Since(stepStart)
-		if stepLatency > result.Metrics.Latency {
-			result.Metrics.Latency = stepLatency
+		if e.client != nil {
+			// Actually call the agent
+			resp, latency, err := e.client.Call(step.Say)
+			if err != nil {
+				result.Passed = false
+				result.Error = fmt.Sprintf("step %d failed: %v", i+1, err)
+				break
+			}
+
+			if !resp.Success {
+				result.Passed = false
+				result.Error = fmt.Sprintf("step %d: %s", i+1, resp.Error)
+				break
+			}
+
+			if latency > result.Metrics.Latency {
+				result.Metrics.Latency = latency
+			}
+
+			// TODO: Validate response matches expectation
+			_ = step.Expect
+		} else {
+			// Simulate call if no endpoint configured
+			time.Sleep(100 * time.Millisecond)
+			result.Metrics.Latency = 100 * time.Millisecond
 		}
 
-		// TODO: Check if response matches expectation
-		// For now, assume success
-		_ = step
 		result.Metrics.StepsCompleted = i + 1
 	}
 
@@ -67,11 +92,19 @@ func (e *Executor) Run(scenario config.Scenario) Result {
 	return result
 }
 
-// RunAll executes multiple scenarios
+// RunAll executes multiple scenarios in parallel
 func (e *Executor) RunAll(scenarios []config.Scenario) []Result {
 	results := make([]Result, len(scenarios))
+	var wg sync.WaitGroup
+	
 	for i, scenario := range scenarios {
-		results[i] = e.Run(scenario)
+		wg.Add(1)
+		go func(idx int, s config.Scenario) {
+			defer wg.Done()
+			results[idx] = e.Run(s)
+		}(i, scenario)
 	}
+	
+	wg.Wait()
 	return results
 }
