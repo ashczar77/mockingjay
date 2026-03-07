@@ -32,3 +32,8 @@ mockingjay.yaml
 # Test results
 results/
 *.log
+
+# Private strategy docs (not for public repo)
+COMMUNITY-STRATEGY.md
+PRIVATE-*.md
+*-PRIVATE.md
