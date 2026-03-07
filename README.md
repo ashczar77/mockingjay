@@ -2,17 +2,29 @@
 
 **Mock every conversation, catch every flaw.**
 
-MockingJay is an open-source developer tool for testing voice AI agents. Catch bugs before your users do.
+Open-source testing platform for voice AI agents. Catch bugs before your users do.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
+
+## Why MockingJay?
+
+Voice AI agents fail in production because manual testing doesn't scale. At 10,000 calls per day, you can't listen to them all.
+
+MockingJay automates voice AI testing with:
+- 🎯 **Synthetic call generation** - Simulate thousands of test scenarios
+- 📊 **Core metrics** - Latency, task completion, word error rate
+- 🔧 **Developer-first** - CLI-first, code-first approach
+- 🚀 **Fast execution** - Parallel testing with Go
 
 ## Status
 
-🚧 **Early Development** - Week 1 of 10-week build
+🚧 **Early Development** - Week 1 of 10
 
-Currently implementing:
-- ✅ CLI framework (Cobra)
+Currently building:
+- ✅ CLI framework
 - ✅ Project initialization
-- ✅ Basic test runner structure
-- 🚧 Config parsing
+- ✅ Test configuration structure
 - 🚧 Voice simulation
 - 🚧 Metrics calculation
 
@@ -20,7 +32,7 @@ Currently implementing:
 
 ```bash
 # Install (coming soon)
-go install github.com/yourusername/mockingjay@latest
+go install github.com/ashczar77/mockingjay@latest
 
 # Initialize a new project
 mockingjay init
@@ -30,15 +42,6 @@ mockingjay init
 # Run tests
 mockingjay run
 ```
-
-## Features (Planned)
-
-- 🎯 **Synthetic Call Generation** - Simulate thousands of test calls
-- 📊 **Core Metrics** - Latency, task completion, word error rate
-- 🔧 **Developer-First** - CLI-first, code-first approach
-- 📝 **YAML Configuration** - Simple, readable test scenarios
-- 🚀 **Fast Execution** - Parallel test execution with Go
-- 🔌 **Integrations** - Twilio, ElevenLabs, Deepgram, and more
 
 ## Example Configuration
 
@@ -61,16 +64,26 @@ metrics:
   - word_error_rate
 
 thresholds:
-  latency_p95: 5000
-  task_completion: 85
-  word_error_rate: 10
+  latency_p95: 5000  # milliseconds
+  task_completion: 85  # percentage
+  word_error_rate: 10  # percentage
 ```
+
+## Roadmap
+
+- **Week 1-2:** CLI + Config parsing
+- **Week 3-4:** Voice simulation
+- **Week 5-6:** Metrics calculation
+- **Week 7-8:** Cloud platform
+- **Week 9-10:** Public launch
+
+See [PROJECT-PLAN.md](PROJECT-PLAN.md) for details.
 
 ## Architecture
 
 ```
 cli/
-├── cmd/              # CLI commands
+├── cmd/              # CLI commands (init, run, version)
 ├── internal/
 │   ├── test/        # Test orchestration
 │   ├── voice/       # Voice simulation
@@ -79,17 +92,13 @@ cli/
 └── main.go
 ```
 
-## Roadmap
-
-**Week 1-2:** CLI + Config parsing  
-**Week 3-4:** Voice simulation  
-**Week 5-6:** Metrics calculation  
-**Week 7-8:** Cloud platform  
-**Week 9-10:** Launch  
-
 ## Contributing
 
-MockingJay is open source! Contributions welcome.
+MockingJay is open source and contributions are welcome!
+
+- Report bugs via [GitHub Issues](https://github.com/ashczar77/mockingjay/issues)
+- Submit PRs for features or fixes
+- Join discussions in [Issues](https://github.com/ashczar77/mockingjay/issues)
 
 ## License
 
@@ -97,9 +106,9 @@ MIT (coming soon)
 
 ## Links
 
-- Documentation: (coming soon)
-- Cloud Platform: (coming soon)
-- Discord: (coming soon)
+- **Documentation:** (coming soon)
+- **Cloud Platform:** (coming soon)
+- **Discord:** (coming soon)
 
 ---
 
