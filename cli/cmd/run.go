@@ -72,19 +72,13 @@ func runTests() error {
 		fmt.Printf("📤 Sending results to: %s\n", apiURL)
 	}
 
-	passed := 0
-	failed := 0
-	var totalLatency int64
-
+	// Print individual results
 	for i, r := range results {
 		fmt.Printf("  [%d/%d] %s", i+1, len(results), r.Scenario)
 		if r.Passed {
 			fmt.Printf(" ✓ PASS (latency: %dms)\n", r.Metrics.Latency.Milliseconds())
-			passed++
-			totalLatency += r.Metrics.Latency.Milliseconds()
 		} else {
 			fmt.Printf(" ✗ FAIL (%s)\n", r.Error)
-			failed++
 		}
 
 		// Send to backend
@@ -95,19 +89,26 @@ func runTests() error {
 		}
 	}
 
+	// Calculate and display statistics
+	stats := test.CalculateStats(results)
+
 	fmt.Println()
 	fmt.Println("📊 Results:")
-	fmt.Printf("  Tests run: %d\n", len(results))
-	fmt.Printf("  Passed: %d\n", passed)
-	fmt.Printf("  Failed: %d\n", failed)
-	if passed > 0 {
-		fmt.Printf("  Avg latency: %dms\n", totalLatency/int64(passed))
-	}
+	fmt.Printf("  Tests run: %d\n", stats.TotalTests)
+	fmt.Printf("  Passed: %d\n", stats.PassedTests)
+	fmt.Printf("  Failed: %d\n", stats.FailedTests)
+	fmt.Printf("  Pass rate: %.1f%%\n", stats.PassRate)
+	fmt.Println()
+	fmt.Println("⚡ Performance:")
+	fmt.Printf("  Avg latency: %dms\n", stats.AvgLatency)
+	fmt.Printf("  P95 latency: %dms\n", stats.P95Latency)
+	fmt.Printf("  P99 latency: %dms\n", stats.P99Latency)
+	fmt.Printf("  Task completion: %.1f%%\n", stats.TaskCompletion)
 	fmt.Println()
 
-	if failed > 0 {
+	if stats.FailedTests > 0 {
 		fmt.Println("❌ Some tests failed")
-		return fmt.Errorf("%d test(s) failed", failed)
+		return fmt.Errorf("%d test(s) failed", stats.FailedTests)
 	}
 
 	fmt.Println("✨ All tests passed!")

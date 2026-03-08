@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -107,4 +108,77 @@ func (e *Executor) RunAll(scenarios []config.Scenario) []Result {
 	
 	wg.Wait()
 	return results
+}
+
+// Stats calculates aggregate statistics from results
+type Stats struct {
+	TotalTests      int
+	PassedTests     int
+	FailedTests     int
+	PassRate        float64
+	AvgLatency      int64
+	P95Latency      int64
+	P99Latency      int64
+	TaskCompletion  float64
+}
+
+// CalculateStats computes statistics from test results
+func CalculateStats(results []Result) Stats {
+	stats := Stats{
+		TotalTests: len(results),
+	}
+
+	if len(results) == 0 {
+		return stats
+	}
+
+	var latencies []int64
+	var totalLatency int64
+	var totalSteps int
+	var completedSteps int
+
+	for _, r := range results {
+		if r.Passed {
+			stats.PassedTests++
+		} else {
+			stats.FailedTests++
+		}
+
+		latencyMs := r.Metrics.Latency.Milliseconds()
+		latencies = append(latencies, latencyMs)
+		totalLatency += latencyMs
+
+		totalSteps += r.Metrics.StepsTotal
+		completedSteps += r.Metrics.StepsCompleted
+	}
+
+	// Pass rate
+	stats.PassRate = float64(stats.PassedTests) / float64(stats.TotalTests) * 100
+
+	// Average latency
+	stats.AvgLatency = totalLatency / int64(len(results))
+
+	// Percentiles
+	sort.Slice(latencies, func(i, j int) bool {
+		return latencies[i] < latencies[j]
+	})
+
+	p95Index := int(float64(len(latencies)) * 0.95)
+	if p95Index >= len(latencies) {
+		p95Index = len(latencies) - 1
+	}
+	stats.P95Latency = latencies[p95Index]
+
+	p99Index := int(float64(len(latencies)) * 0.99)
+	if p99Index >= len(latencies) {
+		p99Index = len(latencies) - 1
+	}
+	stats.P99Latency = latencies[p99Index]
+
+	// Task completion
+	if totalSteps > 0 {
+		stats.TaskCompletion = float64(completedSteps) / float64(totalSteps) * 100
+	}
+
+	return stats
 }
