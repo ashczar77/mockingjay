@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ashczar77/mockingjay/internal/config"
+	"github.com/ashczar77/mockingjay/internal/reporter"
 	"github.com/ashczar77/mockingjay/internal/test"
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,7 @@ import (
 var (
 	configFile string
 	scenario   string
+	apiURL     string
 )
 
 var runCmd = &cobra.Command{
@@ -29,6 +31,7 @@ var runCmd = &cobra.Command{
 func init() {
 	runCmd.Flags().StringVarP(&configFile, "config", "c", "mockingjay.yaml", "config file")
 	runCmd.Flags().StringVarP(&scenario, "scenario", "s", "", "run specific scenario")
+	runCmd.Flags().StringVar(&apiURL, "api-url", "", "backend API URL (optional)")
 }
 
 func runTests() error {
@@ -62,6 +65,13 @@ func runTests() error {
 	executor := test.New(cfg)
 	results := executor.RunAll(scenarios)
 
+	// Send results to backend if API URL provided
+	var reporterClient *reporter.Client
+	if apiURL != "" {
+		reporterClient = reporter.NewClient(apiURL)
+		fmt.Printf("📤 Sending results to: %s\n", apiURL)
+	}
+
 	passed := 0
 	failed := 0
 	var totalLatency int64
@@ -75,6 +85,13 @@ func runTests() error {
 		} else {
 			fmt.Printf(" ✗ FAIL (%s)\n", r.Error)
 			failed++
+		}
+
+		// Send to backend
+		if reporterClient != nil {
+			if err := reporterClient.Report(r); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to report result: %v\n", err)
+			}
 		}
 	}
 
