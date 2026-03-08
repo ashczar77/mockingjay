@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-cli:
+    name: Test CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      
+      - name: Build CLI
+        working-directory: ./cli
+        run: go build -v -o mockingjay
+      
+      - name: Run CLI version
+        working-directory: ./cli
+        run: ./mockingjay version
+      
+      - name: Run CLI init
+        working-directory: ./cli
+        run: ./mockingjay init
+      
+      - name: Verify config created
+        working-directory: ./cli
+        run: test -f mockingjay.yaml
+
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      
+      - name: Build Backend
+        working-directory: ./cloud/backend
+        run: go build -v -o backend
+      
+      - name: Start Backend
+        working-directory: ./cloud/backend
+        run: |
+          ./backend &
+          sleep 3
+      
+      - name: Test Health Endpoint
+        run: curl -f http://localhost:8080/api/health
+
+  test-example-server:
+    name: Test Example Server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      
+      - name: Build Example Server
+        working-directory: ./examples/voice-server
+        run: go build -v -o voice-server
+      
+      - name: Start Example Server
+        working-directory: ./examples/voice-server
+        run: |
+          ./voice-server &
+          sleep 3
+      
+      - name: Test Server Endpoint
+        run: curl -f http://localhost:9000/health
+
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      
+      - name: Build CLI
+        working-directory: ./cli
+        run: go build -v -o mockingjay
+      
+      - name: Build Example Server
+        working-directory: ./examples/voice-server
+        run: go build -v -o voice-server
+      
+      - name: Start Example Server
+        working-directory: ./examples/voice-server
+        run: |
+          ./voice-server &
+          sleep 3
+      
+      - name: Run Tests
+        working-directory: ./examples/voice-server
+        run: ../../cli/mockingjay run
