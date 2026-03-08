@@ -102,7 +102,7 @@ MockingJay is open source and contributions are welcome!
 
 ## License
 
-MIT (coming soon)
+MIT - See [LICENSE](LICENSE) file for details
 
 ## Links
 
