@@ -12,21 +12,26 @@ Open-source testing platform for voice AI agents. Catch bugs before your users d
 Voice AI agents fail in production because manual testing doesn't scale. At 10,000 calls per day, you can't listen to them all.
 
 MockingJay automates voice AI testing with:
-- 🎯 **Synthetic call generation** - Simulate thousands of test scenarios
-- 📊 **Core metrics** - Latency, task completion, word error rate
+- 🎯 **Conversation intelligence** - Identify where dialogues fail
+- 📊 **Advanced metrics** - P95 latency, task completion, intent accuracy
+- 🔍 **Flow analysis** - Visualize conversation paths and drop-off points
 - 🔧 **Developer-first** - CLI-first, code-first approach
 - 🚀 **Fast execution** - Parallel testing with Go
+- 📞 **Real phone testing** - Test with actual calls (coming Week 4)
 
 ## Status
 
-🚧 **Early Development** - Week 1 of 10
+🚧 **Early Development** - Week 2 of 10
 
 Currently building:
 - ✅ CLI framework
-- ✅ Project initialization
-- ✅ Test configuration structure
-- 🚧 Voice simulation
-- 🚧 Metrics calculation
+- ✅ Config parsing & validation
+- ✅ HTTP endpoint testing
+- ✅ Backend API & Dashboard
+- ✅ Enhanced metrics (P95, P99, task completion)
+- 🚧 **Conversation intelligence** (Week 2)
+- 🔜 A/B testing framework (Week 3)
+- 🔜 Real phone call testing (Week 4)
 
 ## Quick Start
 
