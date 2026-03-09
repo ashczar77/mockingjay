@@ -161,7 +161,4 @@ Your voice AI must respond to POST requests:
 
 ## Next Steps
 
-- [Configuration Guide](../configuration/overview.md) - Learn all config options
-- [CLI Reference](../cli-reference.md) - Explore CLI commands
-- [Examples](../examples.md) - See more examples
-- [Best Practices](../best-practices.md) - Learn testing strategies
+- [Configuration](../configuration/overview.md) - Learn how to configure tests

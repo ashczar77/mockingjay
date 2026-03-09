@@ -39,12 +39,6 @@ nav:
     - Quick Start: getting-started/quickstart.md
   - Configuration:
     - Overview: configuration/overview.md
-    - Scenarios: configuration/scenarios.md
-    - Metrics: configuration/metrics.md
-  - CLI Reference: cli-reference.md
-  - API Reference: api-reference.md
-  - Examples: examples.md
-  - Best Practices: best-practices.md
 
 markdown_extensions:
   - pymdownx.highlight:

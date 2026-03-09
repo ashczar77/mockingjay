@@ -79,7 +79,4 @@ agent:
 
 ---
 
-## Next Steps
-
-- [Scenarios](scenarios.md) - Define test scenarios
-- [Metrics](metrics.md) - Configure metrics and thresholds
+## Agent Configuration

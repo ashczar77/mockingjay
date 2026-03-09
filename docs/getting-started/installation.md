@@ -88,4 +88,3 @@ MockingJay v0.1.0
 ## Next Steps
 
 - [Quick Start Guide](quickstart.md) - Get started in 5 minutes
-- [Configuration](../configuration/overview.md) - Learn how to configure tests
