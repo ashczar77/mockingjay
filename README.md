@@ -21,7 +21,7 @@ MockingJay automates voice AI testing with:
 
 ## Status
 
-🚧 **Early Development** - Week 2 of 10
+🚧 **Active Development** - Week 2 of 10
 
 Currently building:
 - ✅ CLI framework
