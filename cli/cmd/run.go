@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ashczar77/mockingjay/internal/config"
+	"github.com/ashczar77/mockingjay/internal/dialogue"
 	"github.com/ashczar77/mockingjay/internal/flow"
 	"github.com/ashczar77/mockingjay/internal/reporter"
 	"github.com/ashczar77/mockingjay/internal/test"
@@ -112,6 +113,11 @@ func runTests() error {
 	flows := analyzer.AnalyzeMultiple(results, scenarios)
 	insights := analyzer.GenerateInsights(flows)
 
+	// Analyze multi-turn dialogues
+	dialogueAnalyzer := dialogue.NewDialogueAnalyzer()
+	dialogueMetrics := dialogueAnalyzer.Analyze(flows)
+	contextLoss := dialogueAnalyzer.DetectContextLoss(flows)
+
 	fmt.Println("💬 Conversation Intelligence:")
 	fmt.Printf("  Success rate: %.1f%%\n", insights.SuccessRate)
 	fmt.Printf("  Intent accuracy: %.1f%% (%d/%d correct)\n", insights.IntentAccuracy, insights.CorrectIntents, insights.TotalIntentChecks)
@@ -122,6 +128,22 @@ func runTests() error {
 		fmt.Println("  Common drop-off points:")
 		for step, count := range insights.CommonDropOffPoints {
 			fmt.Printf("    Step %d: %d failures\n", step, count)
+		}
+	}
+	fmt.Println()
+
+	fmt.Println("🔄 Multi-turn Dialogue:")
+	fmt.Printf("  Multi-turn conversations: %d/%d\n", dialogueMetrics.MultiTurnCount, dialogueMetrics.TotalConversations)
+	fmt.Printf("  Avg turns per conversation: %.1f\n", dialogueMetrics.AvgTurnsPerConv)
+	fmt.Printf("  Max turns: %d\n", dialogueMetrics.MaxTurns)
+	fmt.Printf("  Context retention: %.1f%%\n", dialogueMetrics.ContextRetention)
+	fmt.Printf("  Coherence score: %.1f%%\n", dialogueMetrics.CoherenceScore)
+	
+	if len(contextLoss) > 0 {
+		fmt.Println("  Context loss detected:")
+		for _, loss := range contextLoss {
+			fmt.Printf("    %s (step %d): expected '%s', got '%s'\n", 
+				loss.ScenarioName, loss.StepNumber, loss.Expected, loss.Actual)
 		}
 	}
 	fmt.Println()
