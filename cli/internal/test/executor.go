@@ -17,6 +17,17 @@ type Result struct {
 	Duration time.Duration
 	Error    string
 	Metrics  Metrics
+	Steps    []StepDetail
+}
+
+// StepDetail contains detailed information about a test step
+type StepDetail struct {
+	Input          string
+	ExpectedIntent string
+	ActualIntent   string
+	Response       string
+	Latency        time.Duration
+	Success        bool
 }
 
 // Metrics captured during test execution
@@ -55,38 +66,67 @@ func (e *Executor) Run(scenario config.Scenario) Result {
 		Metrics: Metrics{
 			StepsTotal: len(scenario.Steps),
 		},
+		Steps: make([]StepDetail, 0),
 	}
 
 	// Execute each step
 	for i, step := range scenario.Steps {
+		stepDetail := StepDetail{
+			Input:          step.Say,
+			ExpectedIntent: step.Expect,
+			Success:        false,
+		}
+
 		if e.client != nil {
 			// Actually call the agent
 			resp, latency, err := e.client.Call(step.Say)
 			if err != nil {
 				result.Passed = false
 				result.Error = fmt.Sprintf("step %d failed: %v", i+1, err)
+				stepDetail.Latency = latency
+				result.Steps = append(result.Steps, stepDetail)
 				break
 			}
 
 			if !resp.Success {
 				result.Passed = false
 				result.Error = fmt.Sprintf("step %d: %s", i+1, resp.Error)
+				stepDetail.Latency = latency
+				result.Steps = append(result.Steps, stepDetail)
 				break
+			}
+
+			stepDetail.ActualIntent = resp.Intent
+			stepDetail.Response = resp.Text
+			stepDetail.Latency = latency
+			stepDetail.Success = true
+
+			// Check if intent matches expectation
+			if resp.Intent != step.Expect {
+				result.Passed = false
+				result.Error = fmt.Sprintf("step %d: expected intent '%s', got '%s'", i+1, step.Expect, resp.Intent)
+				stepDetail.Success = false
 			}
 
 			if latency > result.Metrics.Latency {
 				result.Metrics.Latency = latency
 			}
-
-			// TODO: Validate response matches expectation
-			_ = step.Expect
 		} else {
 			// Simulate call if no endpoint configured
 			time.Sleep(100 * time.Millisecond)
 			result.Metrics.Latency = 100 * time.Millisecond
+			stepDetail.ActualIntent = step.Expect
+			stepDetail.Response = "Simulated response"
+			stepDetail.Latency = 100 * time.Millisecond
+			stepDetail.Success = true
 		}
 
+		result.Steps = append(result.Steps, stepDetail)
 		result.Metrics.StepsCompleted = i + 1
+
+		if !stepDetail.Success {
+			break
+		}
 	}
 
 	result.Duration = time.Since(start)

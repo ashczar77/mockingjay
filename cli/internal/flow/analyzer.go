@@ -20,13 +20,14 @@ type ConversationFlow struct {
 
 // StepResult represents the result of a single conversation step
 type StepResult struct {
-	StepNumber    int
-	UserInput     string
+	StepNumber     int
+	UserInput      string
 	ExpectedIntent string
-	ActualIntent  string
-	Matched       bool
-	Latency       time.Duration
-	Error         string
+	ActualIntent   string
+	ActualResponse string
+	Matched        bool
+	Latency        time.Duration
+	Error          string
 }
 
 // Analyzer analyzes conversation flows from test results
@@ -54,17 +55,19 @@ func (a *Analyzer) Analyze(result test.Result, scenario config.Scenario) Convers
 		flow.DropOffPoint = result.Metrics.StepsCompleted
 	}
 
-	// Build step results
-	for i, step := range scenario.Steps {
+	// Build step results from detailed step data
+	for i, stepDetail := range result.Steps {
 		stepResult := StepResult{
 			StepNumber:     i + 1,
-			UserInput:      step.Say,
-			ExpectedIntent: step.Expect,
-			Matched:        i < result.Metrics.StepsCompleted,
-			Latency:        result.Metrics.Latency,
+			UserInput:      stepDetail.Input,
+			ExpectedIntent: stepDetail.ExpectedIntent,
+			ActualIntent:   stepDetail.ActualIntent,
+			ActualResponse: stepDetail.Response,
+			Matched:        stepDetail.Success,
+			Latency:        stepDetail.Latency,
 		}
 
-		if i == result.Metrics.StepsCompleted && !result.Passed {
+		if !stepDetail.Success {
 			stepResult.Error = result.Error
 		}
 
@@ -90,13 +93,16 @@ func (a *Analyzer) AnalyzeMultiple(results []test.Result, scenarios []config.Sce
 
 // FlowInsights provides aggregate insights from multiple flows
 type FlowInsights struct {
-	TotalFlows       int
-	SuccessfulFlows  int
-	FailedFlows      int
-	SuccessRate      float64
-	AvgStepsCompleted float64
+	TotalFlows          int
+	SuccessfulFlows     int
+	FailedFlows         int
+	SuccessRate         float64
+	AvgStepsCompleted   float64
 	CommonDropOffPoints map[int]int // step number -> count
-	AvgDuration      time.Duration
+	AvgDuration         time.Duration
+	IntentAccuracy      float64
+	TotalIntentChecks   int
+	CorrectIntents      int
 }
 
 // GenerateInsights creates insights from conversation flows
@@ -125,11 +131,25 @@ func (a *Analyzer) GenerateInsights(flows []ConversationFlow) FlowInsights {
 
 		totalSteps += flow.CompletedSteps
 		totalDuration += flow.Duration
+
+		// Calculate intent accuracy
+		for _, step := range flow.Steps {
+			if step.ExpectedIntent != "" {
+				insights.TotalIntentChecks++
+				if step.Matched && step.ActualIntent == step.ExpectedIntent {
+					insights.CorrectIntents++
+				}
+			}
+		}
 	}
 
 	insights.SuccessRate = float64(insights.SuccessfulFlows) / float64(insights.TotalFlows) * 100
 	insights.AvgStepsCompleted = float64(totalSteps) / float64(insights.TotalFlows)
 	insights.AvgDuration = totalDuration / time.Duration(insights.TotalFlows)
+
+	if insights.TotalIntentChecks > 0 {
+		insights.IntentAccuracy = float64(insights.CorrectIntents) / float64(insights.TotalIntentChecks) * 100
+	}
 
 	return insights
 }

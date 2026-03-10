@@ -114,6 +114,7 @@ func runTests() error {
 
 	fmt.Println("💬 Conversation Intelligence:")
 	fmt.Printf("  Success rate: %.1f%%\n", insights.SuccessRate)
+	fmt.Printf("  Intent accuracy: %.1f%% (%d/%d correct)\n", insights.IntentAccuracy, insights.CorrectIntents, insights.TotalIntentChecks)
 	fmt.Printf("  Avg steps completed: %.1f\n", insights.AvgStepsCompleted)
 	fmt.Printf("  Avg conversation duration: %dms\n", insights.AvgDuration.Milliseconds())
 	
