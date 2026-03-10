@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ashczar77/mockingjay/internal/config"
+	"github.com/ashczar77/mockingjay/internal/flow"
 	"github.com/ashczar77/mockingjay/internal/reporter"
 	"github.com/ashczar77/mockingjay/internal/test"
 	"github.com/spf13/cobra"
@@ -104,6 +105,24 @@ func runTests() error {
 	fmt.Printf("  P95 latency: %dms\n", stats.P95Latency)
 	fmt.Printf("  P99 latency: %dms\n", stats.P99Latency)
 	fmt.Printf("  Task completion: %.1f%%\n", stats.TaskCompletion)
+	fmt.Println()
+
+	// Analyze conversation flows
+	analyzer := flow.NewAnalyzer()
+	flows := analyzer.AnalyzeMultiple(results, scenarios)
+	insights := analyzer.GenerateInsights(flows)
+
+	fmt.Println("💬 Conversation Intelligence:")
+	fmt.Printf("  Success rate: %.1f%%\n", insights.SuccessRate)
+	fmt.Printf("  Avg steps completed: %.1f\n", insights.AvgStepsCompleted)
+	fmt.Printf("  Avg conversation duration: %dms\n", insights.AvgDuration.Milliseconds())
+	
+	if len(insights.CommonDropOffPoints) > 0 {
+		fmt.Println("  Common drop-off points:")
+		for step, count := range insights.CommonDropOffPoints {
+			fmt.Printf("    Step %d: %d failures\n", step, count)
+		}
+	}
 	fmt.Println()
 
 	if stats.FailedTests > 0 {
