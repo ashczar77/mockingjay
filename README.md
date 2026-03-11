@@ -21,15 +21,17 @@ MockingJay automates voice AI testing with:
 
 ## Status
 
-🚧 **Active Development** - Week 2 of 10
+✅ **Week 2 Complete** - Conversation Intelligence shipped!
 
-Currently building:
-- ✅ CLI framework
+What's working now:
+- ✅ CLI framework with parallel execution
 - ✅ Config parsing & validation
 - ✅ HTTP endpoint testing
 - ✅ Backend API & Dashboard
 - ✅ Enhanced metrics (P95, P99, task completion)
-- 🚧 **Conversation intelligence** (Week 2)
+- ✅ **Conversation intelligence** - Flow tracking, intent accuracy, multi-turn analysis
+- ✅ **Response quality metrics** - Completeness, sentiment, confidence scoring
+- ✅ **Visual dashboard** - Color-coded metrics display
 - 🔜 A/B testing framework (Week 3)
 - 🔜 Real phone call testing (Week 4)
 
