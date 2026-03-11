@@ -24,6 +24,19 @@ type TestResult struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type ConversationMetrics struct {
+	SuccessRate       float64 `json:"success_rate"`
+	IntentAccuracy    float64 `json:"intent_accuracy"`
+	AvgStepsCompleted float64 `json:"avg_steps_completed"`
+	MultiTurnCount    int     `json:"multi_turn_count"`
+	ContextRetention  float64 `json:"context_retention"`
+	CoherenceScore    float64 `json:"coherence_score"`
+	CompletenessScore float64 `json:"completeness_score"`
+	SentimentScore    float64 `json:"sentiment_score"`
+	ConfidenceScore   float64 `json:"confidence_score"`
+	AvgResponseLength float64 `json:"avg_response_length"`
+}
+
 func main() {
 	var err error
 	dbPath := os.Getenv("DB_PATH")
@@ -48,6 +61,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/api/results", createResult).Methods("POST")
 	r.HandleFunc("/api/results", getResults).Methods("GET")
+	r.HandleFunc("/api/metrics", getMetrics).Methods("GET")
 	r.HandleFunc("/api/health", healthCheck).Methods("GET")
 
 	port := os.Getenv("PORT")
@@ -144,4 +158,23 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "OK")
+}
+
+func getMetrics(w http.ResponseWriter, r *http.Request) {
+	// Mock data for now - will be calculated from real test results
+	metrics := ConversationMetrics{
+		SuccessRate:       100.0,
+		IntentAccuracy:    100.0,
+		AvgStepsCompleted: 1.3,
+		MultiTurnCount:    1,
+		ContextRetention:  100.0,
+		CoherenceScore:    100.0,
+		CompletenessScore: 100.0,
+		SentimentScore:    75.0,
+		ConfidenceScore:   100.0,
+		AvgResponseLength: 67.0,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metrics)
 }
