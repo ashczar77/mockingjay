@@ -1,0 +1,40 @@
+# MockingJay Configuration
+version: 1
+
+# Voice AI agent to test
+agent:
+  endpoint: "http://localhost:9000/call"
+
+# Test scenarios
+scenarios:
+  - name: "basic-greeting"
+    description: "Test basic greeting flow"
+    steps:
+      - say: "Hello"
+        expect: "greeting"
+
+  - name: "appointment-booking"
+    description: "Test appointment booking"
+    steps:
+      - say: "I want to book an appointment"
+        expect: "booking_intent"
+      - say: "Tomorrow at 7pm"
+        expect: "confirmation"
+
+  - name: "business-hours"
+    description: "Ask about business hours"
+    steps:
+      - say: "What are your hours?"
+        expect: "hours_response"
+
+# Metrics to track
+metrics:
+  - latency
+  - task_completion
+  - word_error_rate
+
+# Performance thresholds
+thresholds:
+  latency_p95: 5000  # milliseconds
+  task_completion: 85  # percentage
+  word_error_rate: 10  # percentage
