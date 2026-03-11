@@ -7,6 +7,7 @@ import (
 	"github.com/ashczar77/mockingjay/internal/config"
 	"github.com/ashczar77/mockingjay/internal/dialogue"
 	"github.com/ashczar77/mockingjay/internal/flow"
+	"github.com/ashczar77/mockingjay/internal/quality"
 	"github.com/ashczar77/mockingjay/internal/reporter"
 	"github.com/ashczar77/mockingjay/internal/test"
 	"github.com/spf13/cobra"
@@ -118,6 +119,10 @@ func runTests() error {
 	dialogueMetrics := dialogueAnalyzer.Analyze(flows)
 	contextLoss := dialogueAnalyzer.DetectContextLoss(flows)
 
+	// Analyze response quality
+	qualityAnalyzer := quality.NewQualityAnalyzer()
+	qualityMetrics := qualityAnalyzer.Analyze(flows)
+
 	fmt.Println("💬 Conversation Intelligence:")
 	fmt.Printf("  Success rate: %.1f%%\n", insights.SuccessRate)
 	fmt.Printf("  Intent accuracy: %.1f%% (%d/%d correct)\n", insights.IntentAccuracy, insights.CorrectIntents, insights.TotalIntentChecks)
@@ -145,6 +150,20 @@ func runTests() error {
 			fmt.Printf("    %s (step %d): expected '%s', got '%s'\n", 
 				loss.ScenarioName, loss.StepNumber, loss.Expected, loss.Actual)
 		}
+	}
+	fmt.Println()
+
+	fmt.Println("✨ Response Quality:")
+	fmt.Printf("  Avg response length: %.0f chars\n", qualityMetrics.AvgResponseLength)
+	fmt.Printf("  Completeness: %.1f%%\n", qualityMetrics.CompletenessScore)
+	fmt.Printf("  Positive sentiment: %.1f%%\n", qualityMetrics.SentimentScore)
+	fmt.Printf("  Confidence: %.1f%%\n", qualityMetrics.ConfidenceScore)
+	
+	if qualityMetrics.VagueResponses > 0 {
+		fmt.Printf("  ⚠️  Vague responses: %d\n", qualityMetrics.VagueResponses)
+	}
+	if qualityMetrics.EmptyResponses > 0 {
+		fmt.Printf("  ⚠️  Empty responses: %d\n", qualityMetrics.EmptyResponses)
 	}
 	fmt.Println()
 
