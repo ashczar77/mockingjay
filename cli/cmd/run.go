@@ -6,6 +6,7 @@ import (
 
 	"github.com/ashczar77/mockingjay/internal/config"
 	"github.com/ashczar77/mockingjay/internal/dialogue"
+	"github.com/ashczar77/mockingjay/internal/dropoff"
 	"github.com/ashczar77/mockingjay/internal/flow"
 	"github.com/ashczar77/mockingjay/internal/quality"
 	"github.com/ashczar77/mockingjay/internal/reporter"
@@ -123,6 +124,10 @@ func runTests() error {
 	qualityAnalyzer := quality.NewQualityAnalyzer()
 	qualityMetrics := qualityAnalyzer.Analyze(flows)
 
+	// Detect drop-off points
+	dropoffDetector := dropoff.NewDetector()
+	dropoffAnalysis := dropoffDetector.Analyze(flows)
+
 	fmt.Println("💬 Conversation Intelligence:")
 	fmt.Printf("  Success rate: %.1f%%\n", insights.SuccessRate)
 	fmt.Printf("  Intent accuracy: %.1f%% (%d/%d correct)\n", insights.IntentAccuracy, insights.CorrectIntents, insights.TotalIntentChecks)
@@ -166,6 +171,22 @@ func runTests() error {
 		fmt.Printf("  ⚠️  Empty responses: %d\n", qualityMetrics.EmptyResponses)
 	}
 	fmt.Println()
+
+	if len(dropoffAnalysis.DropOffPoints) > 0 {
+		fmt.Println("🚨 Drop-off Detection:")
+		fmt.Printf("  Overall drop-off rate: %.1f%%\n", dropoffAnalysis.OverallDropOffRate)
+		fmt.Printf("  Drop-off points found: %d\n", len(dropoffAnalysis.DropOffPoints))
+		
+		if len(dropoffAnalysis.CriticalPoints) > 0 {
+			fmt.Printf("  ⚠️  Critical issues: %d\n", len(dropoffAnalysis.CriticalPoints))
+			fmt.Println("\n  Critical drop-off points:")
+			for _, point := range dropoffAnalysis.CriticalPoints {
+				fmt.Printf("    Step %d: \"%s\" - %.1f%% drop-off (%s)\n", 
+					point.StepNumber, point.StepInput, point.DropOffRate, point.Severity)
+			}
+		}
+		fmt.Println()
+	}
 
 	if stats.FailedTests > 0 {
 		fmt.Println("❌ Some tests failed")
