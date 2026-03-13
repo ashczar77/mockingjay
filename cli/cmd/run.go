@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ashczar77/mockingjay/internal/config"
+	"github.com/ashczar77/mockingjay/internal/confusion"
 	"github.com/ashczar77/mockingjay/internal/dialogue"
 	"github.com/ashczar77/mockingjay/internal/dropoff"
 	"github.com/ashczar77/mockingjay/internal/flow"
@@ -128,6 +129,10 @@ func runTests() error {
 	dropoffDetector := dropoff.NewDetector()
 	dropoffAnalysis := dropoffDetector.Analyze(flows)
 
+	// Analyze confusion patterns
+	confusionAnalyzer := confusion.NewAnalyzer()
+	confusionAnalysis := confusionAnalyzer.Analyze(flows)
+
 	fmt.Println("💬 Conversation Intelligence:")
 	fmt.Printf("  Success rate: %.1f%%\n", insights.SuccessRate)
 	fmt.Printf("  Intent accuracy: %.1f%% (%d/%d correct)\n", insights.IntentAccuracy, insights.CorrectIntents, insights.TotalIntentChecks)
@@ -183,6 +188,23 @@ func runTests() error {
 			for _, point := range dropoffAnalysis.CriticalPoints {
 				fmt.Printf("    Step %d: \"%s\" - %.1f%% drop-off (%s)\n", 
 					point.StepNumber, point.StepInput, point.DropOffRate, point.Severity)
+			}
+		}
+		fmt.Println()
+	}
+
+	if len(confusionAnalysis.Patterns) > 0 {
+		fmt.Println("🤔 Confusion Patterns:")
+		fmt.Printf("  Confusion rate: %.1f%% (%d/%d intents)\n", 
+			confusionAnalysis.ConfusionRate, confusionAnalysis.ConfusedIntents, confusionAnalysis.TotalIntentChecks)
+		fmt.Printf("  Patterns detected: %d\n", len(confusionAnalysis.Patterns))
+		
+		if len(confusionAnalysis.MostConfusedInputs) > 0 {
+			fmt.Println("\n  Most confused inputs:")
+			for _, pattern := range confusionAnalysis.MostConfusedInputs {
+				fmt.Printf("    \"%s\"\n", pattern.UserInput)
+				fmt.Printf("      Expected: %s → Got: %s (%.1f%% confusion)\n", 
+					pattern.ExpectedIntent, pattern.ActualIntent, pattern.ConfusionRate)
 			}
 		}
 		fmt.Println()
