@@ -197,7 +197,9 @@ func getResults(w http.ResponseWriter, r *http.Request) {
 	results := []TestResult{}
 	for rows.Next() {
 		var r TestResult
-		rows.Scan(&r.ID, &r.Scenario, &r.Passed, &r.Latency, &r.Error, &r.Variant, &r.CreatedAt)
+		var createdAt string
+		rows.Scan(&r.ID, &r.Scenario, &r.Passed, &r.Latency, &r.Error, &r.Variant, &createdAt)
+		r.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
 		results = append(results, r)
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -235,7 +237,9 @@ func getABTests(w http.ResponseWriter, r *http.Request) {
 	tests := []ABTestResult{}
 	for rows.Next() {
 		var t ABTestResult
-		rows.Scan(&t.ID, &t.TestName, &t.VariantA, &t.VariantB, &t.Winner, &t.Summary, &t.CreatedAt)
+		var createdAt string
+		rows.Scan(&t.ID, &t.TestName, &t.VariantA, &t.VariantB, &t.Winner, &t.Summary, &createdAt)
+		t.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
 		tests = append(tests, t)
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -273,7 +277,9 @@ func getTranscriptions(w http.ResponseWriter, r *http.Request) {
 	transcriptions := []Transcription{}
 	for rows.Next() {
 		var t Transcription
-		rows.Scan(&t.ID, &t.CallSID, &t.AudioPath, &t.Text, &t.Confidence, &t.Duration, &t.CreatedAt)
+		var createdAt string
+		rows.Scan(&t.ID, &t.CallSID, &t.AudioPath, &t.Text, &t.Confidence, &t.Duration, &createdAt)
+		t.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
 		transcriptions = append(transcriptions, t)
 	}
 	w.Header().Set("Content-Type", "application/json")
