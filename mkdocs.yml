@@ -39,6 +39,10 @@ nav:
     - Quick Start: getting-started/quickstart.md
   - Configuration:
     - Overview: configuration/overview.md
+  - Features:
+    - A/B Testing: ab-testing.md
+    - Twilio Integration: twilio-integration.md
+    - Transcription: transcription.md
 
 markdown_extensions:
   - pymdownx.highlight:

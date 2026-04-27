@@ -14,12 +14,25 @@ type Config struct {
 	Scenarios  []Scenario `yaml:"scenarios"`
 	Metrics    []string   `yaml:"metrics"`
 	Thresholds Thresholds `yaml:"thresholds"`
+	ABTest     *ABTest    `yaml:"ab_test,omitempty"`
 }
 
 // Agent configuration
 type Agent struct {
 	Endpoint string `yaml:"endpoint,omitempty"`
 	Phone    string `yaml:"phone,omitempty"`
+}
+
+// ABTest configuration for A/B testing two agent variants
+type ABTest struct {
+	VariantA AgentVariant `yaml:"variant_a"`
+	VariantB AgentVariant `yaml:"variant_b"`
+}
+
+// AgentVariant is a named agent endpoint for A/B testing
+type AgentVariant struct {
+	Name     string `yaml:"name"`
+	Endpoint string `yaml:"endpoint"`
 }
 
 // Scenario represents a test scenario
@@ -67,8 +80,10 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("unsupported config version: %d (expected 1)", c.Version)
 	}
 
-	if c.Agent.Endpoint == "" && c.Agent.Phone == "" {
-		return fmt.Errorf("agent must have either endpoint or phone")
+	hasAgent := c.Agent.Endpoint != "" || c.Agent.Phone != ""
+	hasABTest := c.ABTest != nil && c.ABTest.VariantA.Endpoint != "" && c.ABTest.VariantB.Endpoint != ""
+	if !hasAgent && !hasABTest {
+		return fmt.Errorf("agent must have either endpoint or phone (or configure ab_test with two variants)")
 	}
 
 	if len(c.Scenarios) == 0 {

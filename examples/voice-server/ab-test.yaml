@@ -1,0 +1,32 @@
+# A/B Test Example
+# Run with: mockingjay ab -c ab-test.yaml
+version: 1
+
+ab_test:
+  variant_a:
+    name: "v1-baseline"
+    endpoint: "http://localhost:9000/call"
+  variant_b:
+    name: "v2-new-model"
+    endpoint: "http://localhost:9001/call"
+
+scenarios:
+  - name: "basic-greeting"
+    description: "Test basic greeting flow"
+    steps:
+      - say: "Hello"
+        expect: "greeting"
+
+  - name: "appointment-booking"
+    description: "Test appointment booking"
+    steps:
+      - say: "I want to book an appointment"
+        expect: "booking_intent"
+      - say: "Tomorrow at 7pm"
+        expect: "confirmation"
+
+  - name: "business-hours"
+    description: "Ask about business hours"
+    steps:
+      - say: "What are your hours?"
+        expect: "hours_response"

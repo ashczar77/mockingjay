@@ -2,7 +2,7 @@
 
 **Test voice AI agents with conversation intelligence.**
 
-Open-source testing platform that catches bugs before your users do. Track conversation flows, validate intents, and measure response quality automatically.
+Open-source testing platform that catches bugs before your users do. Track conversation flows, validate intents, measure response quality, run A/B tests, and transcribe real calls.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
@@ -15,49 +15,12 @@ MockingJay gives you:
 - 💬 **Conversation Intelligence** - Track where users drop off, validate intent accuracy
 - 🔄 **Multi-turn Analysis** - Measure context retention and dialogue coherence
 - ✨ **Response Quality** - Score completeness, sentiment, and confidence automatically
+- 🔬 **A/B Testing** - Compare two agent variants side-by-side
+- 📞 **Real Call Testing** - Make actual phone calls via Twilio
+- 🎙️ **Transcription** - Transcribe call recordings with Deepgram ASR
 - 📊 **Visual Dashboard** - See metrics at a glance with color-coded cards
 - 🚀 **Fast Execution** - Parallel testing with Go
 - 🔧 **Developer-first** - CLI-first, YAML config, Git-friendly
-
-## Features
-
-### ✅ Conversation Intelligence
-```bash
-💬 Conversation Intelligence:
-  Success rate: 100.0%
-  Intent accuracy: 100.0% (4/4 correct)
-  Avg steps completed: 1.3
-  Avg conversation duration: 142ms
-
-🔄 Multi-turn Dialogue:
-  Multi-turn conversations: 1/3
-  Context retention: 100.0%
-  Coherence score: 100.0%
-
-✨ Response Quality:
-  Completeness: 100.0%
-  Positive sentiment: 75.0%
-  Confidence: 100.0%
-  Avg response length: 67 chars
-```
-
-### ✅ Performance Metrics
-- P95/P99 latency tracking
-- Task completion rates
-- Parallel test execution
-- Drop-off point detection
-
-### ✅ Visual Dashboard
-- Real-time metrics display
-- Color-coded quality indicators
-- Conversation flow visualization
-- Historical test results
-
-### 🔜 Coming Soon
-- A/B testing framework (Week 3)
-- Confusion pattern analysis (Week 3)
-- Real phone call testing via Twilio (Week 4)
-- Audio recording and transcription (Week 4)
 
 ## Quick Start
 
@@ -68,17 +31,110 @@ cd mockingjay/cli
 go build -o mockingjay
 ```
 
-### 2. Create Test Configuration
+### 2. Start the Example Voice Server
 ```bash
-./mockingjay init
+cd examples/voice-server
+go run main.go
+# Server starts on http://localhost:9000
 ```
 
-This creates `mockingjay.yaml`:
+### 3. Run Tests
+```bash
+cd examples/voice-server
+../../cli/mockingjay run
+```
+
+### 4. View Dashboard (Optional)
+```bash
+# Terminal 1: Start backend
+cd cloud/backend && go run main.go
+
+# Terminal 2: Start frontend
+cd cloud/frontend && npm install && npm run dev
+
+# Open http://localhost:3000
+```
+
+## Commands
+
+### `mockingjay run` — Run test scenarios
+```bash
+mockingjay run                          # uses mockingjay.yaml
+mockingjay run -c my-config.yaml        # custom config
+mockingjay run -s basic-greeting        # single scenario
+mockingjay run --api-url http://localhost:8080  # report to dashboard
+```
+
+### `mockingjay ab` — A/B test two agent variants
+```bash
+mockingjay ab -c ab-test.yaml
+```
+
+Config with `ab_test` block:
+```yaml
+version: 1
+
+ab_test:
+  variant_a:
+    name: "v1-baseline"
+    endpoint: "http://localhost:9000/call"
+  variant_b:
+    name: "v2-new-model"
+    endpoint: "http://localhost:9001/call"
+
+scenarios:
+  - name: "basic-greeting"
+    steps:
+      - say: "Hello"
+        expect: "greeting"
+```
+
+Output:
+```
+🔬 A/B Test: v1-baseline vs v2-new-model
+
+  Metric                    v1-baseline  v2-new-model        Delta
+  ------                       --------      --------        -----
+  Avg Latency (ms)              105.0         89.0  ✓       -16.0
+  P95 Latency (ms)              108.0         92.0  ✓       -16.0
+  Pass Rate (%)                 100.0        100.0            +0.0
+  Task Completion (%)           100.0        100.0            +0.0
+
+  🏆 Winner: v2-new-model
+```
+
+### `mockingjay call` — Make a real phone call via Twilio
+```bash
+export TWILIO_ACCOUNT_SID=ACxxx
+export TWILIO_AUTH_TOKEN=xxx
+export TWILIO_FROM_NUMBER=+15551234567
+
+mockingjay call \
+  --to +15559876543 \
+  --webhook https://your-twiml-server.com/voice \
+  --record
+```
+
+### `mockingjay transcribe` — Transcribe a call recording
+```bash
+# From local file
+mockingjay transcribe --file recording.wav
+
+# From URL (e.g. Twilio recording)
+mockingjay transcribe --url https://api.twilio.com/recordings/xxx.mp3
+
+# Set API key via env
+export DEEPGRAM_API_KEY=xxx
+```
+
+## Configuration Reference
+
 ```yaml
 version: 1
 
 agent:
-  endpoint: "http://localhost:9000/call"
+  endpoint: "http://localhost:9000/call"  # HTTP voice AI endpoint
+  phone: "+15551234567"                   # or phone number for Twilio
 
 scenarios:
   - name: "basic-greeting"
@@ -86,9 +142,9 @@ scenarios:
     steps:
       - say: "Hello"
         expect: "greeting"
-  
+
   - name: "appointment-booking"
-    description: "Test multi-turn booking"
+    description: "Multi-turn booking flow"
     steps:
       - say: "I want to book an appointment"
         expect: "booking_intent"
@@ -101,104 +157,86 @@ metrics:
   - intent_accuracy
 
 thresholds:
-  latency_p95: 5000
-  task_completion: 85
+  latency_p95: 5000    # ms
+  task_completion: 85  # percent
+
+# Optional: A/B test configuration
+ab_test:
+  variant_a:
+    name: "baseline"
+    endpoint: "http://localhost:9000/call"
+  variant_b:
+    name: "new-model"
+    endpoint: "http://localhost:9001/call"
 ```
 
-### 3. Run Tests
-```bash
-./mockingjay run
+## Voice AI API Contract
+
+Your agent must accept POST requests and return JSON:
+
+**Request:**
+```json
+{ "text": "Hello" }
 ```
 
-### 4. View Dashboard (Optional)
-```bash
-# Terminal 1: Start backend
-cd cloud/backend
-go run main.go
-
-# Terminal 2: Start frontend
-cd cloud/frontend
-npm install
-npm run dev
-
-# Open http://localhost:3000
+**Response:**
+```json
+{
+  "text": "Hello! How can I help you today?",
+  "intent": "greeting",
+  "success": true
+}
 ```
 
 ## Architecture
 
 ```
 mockingjay/
-├── cli/                          # Command-line interface
-│   ├── cmd/                      # Commands (init, run, version)
-│   ├── internal/
-│   │   ├── config/              # YAML parsing
-│   │   ├── test/                # Test execution
-│   │   ├── flow/                # Conversation flow analysis
-│   │   ├── dialogue/            # Multi-turn dialogue tracking
-│   │   ├── quality/             # Response quality scoring
-│   │   ├── voice/               # HTTP client for voice AI
-│   │   └── reporter/            # Backend reporting
-│   └── main.go
+├── cli/
+│   ├── cmd/
+│   │   ├── run.go          # mockingjay run
+│   │   ├── ab.go           # mockingjay ab
+│   │   ├── call.go         # mockingjay call (Twilio)
+│   │   ├── transcribe.go   # mockingjay transcribe (Deepgram)
+│   │   └── init.go         # mockingjay init
+│   └── internal/
+│       ├── ab/             # A/B test comparison
+│       ├── audio/          # Deepgram transcription
+│       ├── config/         # YAML config parsing
+│       ├── confusion/      # Confusion pattern detection
+│       ├── dialogue/       # Multi-turn dialogue analysis
+│       ├── dropoff/        # Drop-off point detection
+│       ├── flow/           # Conversation flow analysis
+│       ├── quality/        # Response quality scoring
+│       ├── reporter/       # Backend reporting client
+│       ├── test/           # Test execution engine
+│       ├── twilio/         # Twilio phone call client
+│       └── voice/          # HTTP voice AI client
 │
 ├── cloud/
-│   ├── backend/                 # API server (Go + SQLite)
-│   └── frontend/                # Dashboard (Next.js)
+│   ├── backend/            # Go API server (SQLite)
+│   │   └── main.go         # REST API: results, metrics, ab-tests, transcriptions
+│   └── frontend/           # Next.js dashboard
+│       └── app/page.tsx    # Tabbed dashboard
 │
 └── examples/
-    └── voice-server/            # Example voice AI server
+    └── voice-server/       # Example voice AI server for testing
 ```
 
-## How It Works
+## Environment Variables
 
-1. **Define scenarios** in YAML with expected conversation flows
-2. **Run tests** - CLI executes scenarios in parallel
-3. **Analyze results** - Tracks intent accuracy, context retention, response quality
-4. **View metrics** - CLI output or visual dashboard
-5. **Iterate** - Fix issues and re-test
-
-## Example Output
-
-```bash
-🐦 MockingJay - Starting tests...
-
-📋 Loading config from: mockingjay.yaml
-🎯 Running 3 scenario(s)...
-
-  [1/3] basic-greeting ✓ PASS (latency: 108ms)
-  [2/3] appointment-booking ✓ PASS (latency: 108ms)
-  [3/3] business-hours ✓ PASS (latency: 108ms)
-
-📊 Results:
-  Tests run: 3
-  Passed: 3
-  Failed: 0
-  Pass rate: 100.0%
-
-⚡ Performance:
-  Avg latency: 108ms
-  P95 latency: 108ms
-  P99 latency: 108ms
-
-💬 Conversation Intelligence:
-  Success rate: 100.0%
-  Intent accuracy: 100.0% (4/4 correct)
-  Avg steps completed: 1.3
-
-🔄 Multi-turn Dialogue:
-  Context retention: 100.0%
-  Coherence score: 100.0%
-
-✨ Response Quality:
-  Completeness: 100.0%
-  Sentiment: 75.0%
-  Confidence: 100.0%
-
-✨ All tests passed!
-```
+| Variable | Description |
+|---|---|
+| `TWILIO_ACCOUNT_SID` | Twilio Account SID |
+| `TWILIO_AUTH_TOKEN` | Twilio Auth Token |
+| `TWILIO_FROM_NUMBER` | Twilio phone number to call from |
+| `DEEPGRAM_API_KEY` | Deepgram API key for transcription |
+| `DB_PATH` | Backend SQLite database path (default: `./mockingjay.db`) |
+| `PORT` | Backend server port (default: `8080`) |
 
 ## Development Status
 
-**Week 2 Complete** ✅ - Conversation Intelligence shipped!
+**Week 3-4 Complete** ✅
 
 - [x] CLI framework with parallel execution
 - [x] YAML configuration with validation
@@ -207,13 +245,16 @@ mockingjay/
 - [x] Intent accuracy validation
 - [x] Multi-turn dialogue analysis
 - [x] Response quality metrics
+- [x] Drop-off point detection
+- [x] Confusion pattern analysis
+- [x] A/B testing framework
+- [x] Twilio integration (real phone calls)
+- [x] Audio recording & transcription (Deepgram)
 - [x] Backend API (SQLite)
-- [x] Visual dashboard (Next.js)
-- [x] CI/CD with GitHub Actions
-- [ ] A/B testing framework (Week 3)
-- [ ] Confusion pattern analysis (Week 3)
-- [ ] Twilio integration (Week 4)
-- [ ] Audio recording (Week 4)
+- [x] Visual dashboard (Next.js) with 4 tabs
+- [ ] User authentication (Week 7-8)
+- [ ] Stripe integration (Week 7-8)
+- [ ] Production monitoring (Post-MVP)
 
 ## Contributing
 
@@ -221,7 +262,6 @@ MockingJay is open source and contributions are welcome!
 
 - Report bugs via [GitHub Issues](https://github.com/ashczar77/mockingjay/issues)
 - Submit PRs for features or fixes
-- Join discussions in [Issues](https://github.com/ashczar77/mockingjay/issues)
 
 ## License
 
