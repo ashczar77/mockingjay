@@ -81,6 +81,8 @@ func main() {
 	if err := initDB(); err != nil {
 		log.Fatal("Failed to initialize database:", err)
 	}
+	// migrate: add variant column if missing (older DBs)
+	db.Exec(`ALTER TABLE test_results ADD COLUMN variant TEXT`)
 
 	r := mux.NewRouter()
 	r.Use(corsMiddleware)
