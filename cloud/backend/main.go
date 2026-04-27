@@ -283,8 +283,12 @@ func getTranscriptions(w http.ResponseWriter, r *http.Request) {
 func getMetrics(w http.ResponseWriter, r *http.Request) {
 	var metrics ConversationMetrics
 
+	var passedTests sql.NullInt64
+	var avgLatency sql.NullFloat64
 	db.QueryRow(`SELECT COUNT(*), SUM(CASE WHEN passed THEN 1 ELSE 0 END), AVG(latency_ms) FROM test_results`).
-		Scan(&metrics.TotalTests, &metrics.PassedTests, &metrics.AvgLatency)
+		Scan(&metrics.TotalTests, &passedTests, &avgLatency)
+	metrics.PassedTests = int(passedTests.Int64)
+	metrics.AvgLatency = avgLatency.Float64
 
 	if metrics.TotalTests > 0 {
 		metrics.SuccessRate = float64(metrics.PassedTests) / float64(metrics.TotalTests) * 100
