@@ -59,30 +59,26 @@ export default function Home() {
   const [abTests, setABTests] = useState<ABTest[]>([]);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
+    const safeFetch = (url: string) =>
+      fetch(url).then(r => r.ok ? r.json() : null).catch(() => null);
+
     Promise.all([
-      fetch(`${API}/api/metrics`).then(r => r.json()),
-      fetch(`${API}/api/results?limit=20`).then(r => r.json()),
-      fetch(`${API}/api/ab-tests`).then(r => r.json()),
-      fetch(`${API}/api/transcriptions`).then(r => r.json()),
-    ])
-      .then(([m, r, ab, t]) => {
+      safeFetch(`${API}/api/metrics`),
+      safeFetch(`${API}/api/results?limit=20`),
+      safeFetch(`${API}/api/ab-tests`),
+      safeFetch(`${API}/api/transcriptions`),
+    ]).then(([m, r, ab, t]) => {
         setMetrics(m);
         setResults(r || []);
         setABTests(ab || []);
         setTranscriptions(t || []);
         setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
       });
   }, []);
 
   if (loading) return <Center>Loading...</Center>;
-  if (error) return <Center className="text-red-600">Backend unavailable: {error}</Center>;
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'metrics', label: '📊 Metrics' },
