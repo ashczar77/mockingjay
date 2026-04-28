@@ -23,6 +23,7 @@ type CallResponse struct {
 func main() {
 	http.HandleFunc("/call", handleCall)
 	http.HandleFunc("/health", handleHealth)
+	http.HandleFunc("/voice", handleVoice)
 
 	port := "9000"
 	log.Printf("🤖 Example Voice AI Server")
@@ -86,4 +87,12 @@ func handleCall(w http.ResponseWriter, r *http.Request) {
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "OK")
+}
+
+func handleVoice(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/xml")
+	fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Hello! This is a MockingJay test call. Your voice AI agent is working correctly. Goodbye!</Say>
+</Response>`)
 }
