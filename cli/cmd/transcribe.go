@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -10,10 +13,11 @@ import (
 )
 
 var (
-	deepgramKey  string
-	audioURL     string
-	audioFile    string
-	outputDir    string
+	deepgramKey      string
+	audioURL         string
+	audioFile        string
+	outputDir        string
+	transcribeAPIURL string
 )
 
 var transcribeCmd = &cobra.Command{
@@ -33,6 +37,7 @@ func init() {
 	transcribeCmd.Flags().StringVar(&audioURL, "url", "", "URL of audio file to transcribe")
 	transcribeCmd.Flags().StringVar(&audioFile, "file", "", "Local audio file to transcribe")
 	transcribeCmd.Flags().StringVar(&outputDir, "output-dir", ".", "Directory to save downloaded audio")
+	transcribeCmd.Flags().StringVar(&transcribeAPIURL, "api-url", "", "Backend URL to save transcription (e.g. http://localhost:8080)")
 }
 
 func runTranscribe() error {
@@ -71,6 +76,21 @@ func runTranscribe() error {
 	fmt.Printf("  Confidence: %.1f%%\n", transcript.Confidence*100)
 	fmt.Printf("  Duration:   %.1fs\n", transcript.Duration)
 	fmt.Printf("  Words:      %d\n", len(transcript.Words))
+
+	if transcribeAPIURL != "" {
+		payload, _ := json.Marshal(map[string]interface{}{
+			"audio_path":       localPath,
+			"text":             transcript.Text,
+			"confidence":       transcript.Confidence,
+			"duration_seconds": transcript.Duration,
+		})
+		resp, err := http.Post(transcribeAPIURL+"/api/transcriptions", "application/json", bytes.NewReader(payload))
+		if err != nil || resp.StatusCode >= 300 {
+			fmt.Printf("\n⚠️  Failed to save to backend\n")
+		} else {
+			fmt.Printf("\n✅ Saved to dashboard\n")
+		}
+	}
 
 	return nil
 }
