@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
 // Transcriber handles audio transcription via ASR APIs
@@ -48,29 +46,17 @@ func NewDeepgramTranscriber(apiKey string) *DeepgramTranscriber {
 
 // Transcribe sends audio to Deepgram and returns transcript
 func (d *DeepgramTranscriber) Transcribe(audioPath string) (*Transcript, error) {
-	file, err := os.Open(audioPath)
+	data, err := os.ReadFile(audioPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open audio file: %w", err)
 	}
-	defer file.Close()
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("audio", filepath.Base(audioPath))
-	if err != nil {
-		return nil, err
-	}
-	if _, err := io.Copy(part, file); err != nil {
-		return nil, err
-	}
-	writer.Close()
-
-	req, err := http.NewRequest("POST", "https://api.deepgram.com/v1/listen?model=general&punctuate=true", body)
+	req, err := http.NewRequest("POST", "https://api.deepgram.com/v1/listen?model=general&punctuate=true", bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Token "+d.apiKey)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Content-Type", "audio/wav")
 
 	resp, err := d.client.Do(req)
 	if err != nil {
