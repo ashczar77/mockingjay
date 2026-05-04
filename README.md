@@ -1,26 +1,42 @@
 # MockingJay 🐦
 
-**Test voice AI agents with conversation intelligence.**
+**A testing harness for voice AI agents.**
 
-Open-source testing platform that catches bugs before your users do. Track conversation flows, validate intents, measure response quality, run A/B tests, and transcribe real calls.
+MockingJay is not a voice AI agent — it's the tool you use to test one. It sends scripted conversations to your agent, validates responses, records real calls, transcribes audio, and surfaces metrics in a dashboard. Think of it as CI/CD for voice AI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
 
-## Why MockingJay?
+---
 
-Voice AI agents fail in production because manual testing doesn't scale. At 10,000 calls per day, you can't listen to them all.
+## What MockingJay Does
 
-MockingJay gives you:
-- 💬 **Conversation Intelligence** - Track where users drop off, validate intent accuracy
-- 🔄 **Multi-turn Analysis** - Measure context retention and dialogue coherence
-- ✨ **Response Quality** - Score completeness, sentiment, and confidence automatically
-- 🔬 **A/B Testing** - Compare two agent variants side-by-side
-- 📞 **Real Call Testing** - Make actual phone calls via Twilio
-- 🎙️ **Transcription** - Transcribe call recordings with Deepgram ASR
-- 📊 **Visual Dashboard** - See metrics at a glance with color-coded cards
-- 🚀 **Fast Execution** - Parallel testing with Go
-- 🔧 **Developer-first** - CLI-first, YAML config, Git-friendly
+Your voice AI agent lives separately — it could be a GPT-powered phone bot, an IVR system, a Twilio-based assistant, or any HTTP endpoint that accepts text and returns a response. MockingJay plugs into it and tests it:
+
+| Command | What it does |
+|---|---|
+| `mockingjay run` | Sends scripted multi-turn conversations to your agent's HTTP endpoint. Validates that responses match expected intents, measures latency, tracks drop-off points, scores response quality. |
+| `mockingjay ab` | Runs the same scenarios against two agent variants side-by-side and declares a winner based on latency, pass rate, and task completion. |
+| `mockingjay call` | Makes a real outbound phone call via Twilio to your deployed agent. Records the call. |
+| `mockingjay transcribe` | Converts a call recording (local file or URL) to text using Deepgram ASR. Saves the transcript to the dashboard. |
+| Dashboard | Aggregates all results — pass rates, latency, intent accuracy, A/B comparisons, transcriptions — in a visual UI. |
+
+---
+
+## How It Fits Into Your Workflow
+
+```
+1. Develop your voice AI agent
+2. Write test scenarios in mockingjay.yaml
+3. Run mockingjay run on every deploy (in CI or locally)
+4. Use mockingjay call + transcribe to test the real phone experience
+5. Use mockingjay ab to compare agent versions before promoting
+6. Monitor quality trends in the dashboard over time
+```
+
+The `examples/voice-server` in this repo is a minimal stand-in agent for local testing. Replace it with your real agent's endpoint when testing in production.
+
+---
 
 ## Quick Start
 
@@ -31,14 +47,14 @@ cd mockingjay/cli
 go build -o mockingjay
 ```
 
-### 2. Start the Example Voice Server
+### 2. Start the Example Voice Server (stand-in agent for local testing)
 ```bash
 cd examples/voice-server
 go run main.go
-# Server starts on http://localhost:9000
+# Starts on http://localhost:9000
 ```
 
-### 3. Run Tests
+### 3. Run Test Scenarios
 ```bash
 cd examples/voice-server
 ../../cli/mockingjay run
@@ -46,31 +62,46 @@ cd examples/voice-server
 
 ### 4. View Dashboard (Optional)
 ```bash
-# Terminal 1: Start backend
+# Terminal 1: backend
 cd cloud/backend && go run main.go
 
-# Terminal 2: Start frontend
+# Terminal 2: frontend
 cd cloud/frontend && npm install && npm run dev
 
 # Open http://localhost:3000
 ```
 
+---
+
 ## Commands
 
-### `mockingjay run` — Run test scenarios
+### `mockingjay run` — Validate agent responses
+
+Sends each scenario's conversation steps to your agent's HTTP endpoint and checks that the returned intent matches what you expect.
+
 ```bash
 mockingjay run                          # uses mockingjay.yaml
 mockingjay run -c my-config.yaml        # custom config
 mockingjay run -s basic-greeting        # single scenario
-mockingjay run --api-url http://localhost:8080  # report to dashboard
+mockingjay run --api-url http://localhost:8080  # report results to dashboard
 ```
 
-### `mockingjay ab` — A/B test two agent variants
+What it measures:
+- **Intent accuracy** — did the agent return the expected intent?
+- **Latency** — how long did each response take?
+- **Task completion** — did the full conversation flow succeed?
+- **Drop-off points** — which step do users most often fail at?
+- **Response quality** — completeness, sentiment, confidence scores
+- **Multi-turn coherence** — does the agent retain context across turns?
+- **Confusion patterns** — which inputs cause the agent to misfire?
+
+### `mockingjay ab` — Compare two agent variants
+
 ```bash
 mockingjay ab -c ab-test.yaml
 ```
 
-Config with `ab_test` block:
+Config:
 ```yaml
 version: 1
 
@@ -103,7 +134,10 @@ Output:
   🏆 Winner: v2-new-model
 ```
 
-### `mockingjay call` — Make a real phone call via Twilio
+### `mockingjay call` — Test the real phone experience
+
+Makes an outbound call via Twilio to your deployed agent. The `--webhook` URL is your agent's TwiML endpoint — Twilio fetches it to get instructions for what to say/do during the call.
+
 ```bash
 export TWILIO_ACCOUNT_SID=ACxxx
 export TWILIO_AUTH_TOKEN=xxx
@@ -111,21 +145,27 @@ export TWILIO_FROM_NUMBER=+15551234567
 
 mockingjay call \
   --to +15559876543 \
-  --webhook https://your-twiml-server.com/voice \
+  --webhook https://your-agent.com/voice \
   --record
 ```
 
-### `mockingjay transcribe` — Transcribe a call recording
+> **Note:** Twilio trial accounts can only call verified numbers and prepend a trial message. Upgrade your Twilio account to remove these restrictions.
+
+### `mockingjay transcribe` — Convert recordings to text
+
+Takes a call recording and returns a transcript with confidence score and duration. Use `--api-url` to save it to the dashboard.
+
 ```bash
+export DEEPGRAM_API_KEY=xxx
+
 # From local file
-mockingjay transcribe --file recording.wav
+mockingjay transcribe --file recording.wav --api-url http://localhost:8080
 
 # From URL (e.g. Twilio recording)
 mockingjay transcribe --url https://api.twilio.com/recordings/xxx.mp3
-
-# Set API key via env
-export DEEPGRAM_API_KEY=xxx
 ```
+
+---
 
 ## Configuration Reference
 
@@ -133,7 +173,7 @@ export DEEPGRAM_API_KEY=xxx
 version: 1
 
 agent:
-  endpoint: "http://localhost:9000/call"  # HTTP voice AI endpoint
+  endpoint: "http://localhost:9000/call"  # your agent's HTTP endpoint
   phone: "+15551234567"                   # or phone number for Twilio
 
 scenarios:
@@ -159,20 +199,13 @@ metrics:
 thresholds:
   latency_p95: 5000    # ms
   task_completion: 85  # percent
-
-# Optional: A/B test configuration
-ab_test:
-  variant_a:
-    name: "baseline"
-    endpoint: "http://localhost:9000/call"
-  variant_b:
-    name: "new-model"
-    endpoint: "http://localhost:9001/call"
 ```
+
+---
 
 ## Voice AI API Contract
 
-Your agent must accept POST requests and return JSON:
+For `mockingjay run` and `mockingjay ab`, your agent must accept POST requests and return JSON:
 
 **Request:**
 ```json
@@ -187,6 +220,10 @@ Your agent must accept POST requests and return JSON:
   "success": true
 }
 ```
+
+For `mockingjay call`, your agent must expose a TwiML webhook endpoint that Twilio can fetch during the call.
+
+---
 
 ## Architecture
 
@@ -215,13 +252,13 @@ mockingjay/
 │
 ├── cloud/
 │   ├── backend/            # Go API server (SQLite)
-│   │   └── main.go         # REST API: results, metrics, ab-tests, transcriptions
 │   └── frontend/           # Next.js dashboard
-│       └── app/page.tsx    # Tabbed dashboard
 │
 └── examples/
-    └── voice-server/       # Example voice AI server for testing
+    └── voice-server/       # Stand-in agent for local testing only
 ```
+
+---
 
 ## Environment Variables
 
@@ -234,9 +271,9 @@ mockingjay/
 | `DB_PATH` | Backend SQLite database path (default: `./mockingjay.db`) |
 | `PORT` | Backend server port (default: `8080`) |
 
-## Development Status
+---
 
-**Week 3-4 Complete** ✅
+## Development Status
 
 - [x] CLI framework with parallel execution
 - [x] YAML configuration with validation
@@ -252,9 +289,11 @@ mockingjay/
 - [x] Audio recording & transcription (Deepgram)
 - [x] Backend API (SQLite)
 - [x] Visual dashboard (Next.js) with 4 tabs
-- [ ] User authentication (Week 7-8)
-- [ ] Stripe integration (Week 7-8)
-- [ ] Production monitoring (Post-MVP)
+- [ ] User authentication
+- [ ] Stripe integration
+- [ ] Production monitoring
+
+---
 
 ## Contributing
 
@@ -270,4 +309,3 @@ MIT - See [LICENSE](LICENSE) file for details
 ---
 
 Built with ❤️ for the voice AI community
-
