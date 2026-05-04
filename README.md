@@ -36,6 +36,26 @@ Your voice AI agent lives separately — it could be a GPT-powered phone bot, an
 
 The `examples/voice-server` in this repo is a minimal stand-in agent for local testing. Replace it with your real agent's endpoint when testing in production.
 
+### Testing call quality end-to-end
+
+`mockingjay call` only tells you whether the call connected and completed — not whether your agent said the right thing. To validate actual call quality, combine all three commands:
+
+```bash
+# Step 1: Make the call and record it
+mockingjay call --to +15559876543 --webhook https://your-agent.com/voice --record
+
+# Step 2: Transcribe the recording to get the text of what was said
+mockingjay transcribe --file recording.wav --api-url http://localhost:8080
+
+# Step 3: Review the transcript in the dashboard (http://localhost:3000)
+# or feed the transcript back into your scenarios to validate intent accuracy
+mockingjay run --api-url http://localhost:8080
+```
+
+The transcript gives you the actual content of the call. You can review it manually in the dashboard's Transcriptions tab, or use it to update your `mockingjay.yaml` scenarios and re-run `mockingjay run` to validate that your agent's responses matched expectations.
+
+> **Roadmap:** A future version will close this loop automatically — call → transcribe → validate → report — in a single command.
+
 ---
 
 ## Quick Start
@@ -292,6 +312,7 @@ mockingjay/
 - [ ] User authentication
 - [ ] Stripe integration
 - [ ] Production monitoring
+- [ ] Automated call quality loop (call → transcribe → validate → report in one command)
 
 ---
 
