@@ -50,7 +50,7 @@ interface Transcription {
   created_at: string;
 }
 
-type Tab = 'metrics' | 'results' | 'ab-tests' | 'transcriptions';
+type Tab = 'metrics' | 'results' | 'ab-tests' | 'transcriptions' | 'health';
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('metrics');
@@ -58,6 +58,7 @@ export default function Home() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [abTests, setABTests] = useState<ABTest[]>([]);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
+  const [health, setHealth] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,11 +70,13 @@ export default function Home() {
       safeFetch(`${API}/api/results?limit=20`),
       safeFetch(`${API}/api/ab-tests`),
       safeFetch(`${API}/api/transcriptions`),
-    ]).then(([m, r, ab, t]) => {
+      safeFetch(`${API}/api/health/status`),
+    ]).then(([m, r, ab, t, h]) => {
         setMetrics(m);
         setResults(r || []);
         setABTests(ab || []);
         setTranscriptions(t || []);
+        setHealth(h);
         setLoading(false);
       });
   }, []);
@@ -85,6 +88,7 @@ export default function Home() {
     { id: 'results', label: '🧪 Test Results' },
     { id: 'ab-tests', label: '🔬 A/B Tests' },
     { id: 'transcriptions', label: '🎙️ Transcriptions' },
+    { id: 'health', label: '❤️ Health' },
   ];
 
   return (
@@ -114,6 +118,7 @@ export default function Home() {
         {tab === 'results' && <ResultsTab results={results} />}
         {tab === 'ab-tests' && <ABTestsTab tests={abTests} />}
         {tab === 'transcriptions' && <TranscriptionsTab transcriptions={transcriptions} />}
+        {tab === 'health' && <HealthTab health={health} />}
       </div>
     </div>
   );
@@ -244,6 +249,64 @@ function TranscriptionsTab({ transcriptions }: { transcriptions: Transcription[]
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function HealthTab({ health }: { health: any }) {
+  if (!health) return <Empty>No health data yet. Run <code>mockingjay run --api-url http://localhost:8080</code></Empty>;
+
+  const statusColors: Record<string, string> = {
+    healthy: 'bg-green-100 text-green-800 border-green-300',
+    degraded: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    unhealthy: 'bg-red-100 text-red-800 border-red-300',
+  };
+  const statusColor = statusColors[health.status] ?? statusColors.healthy;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow p-6 flex items-center gap-6">
+        <div className={`border-2 rounded-lg px-6 py-4 text-center ${statusColor}`}>
+          <div className="text-xs font-medium opacity-75 mb-1">Status</div>
+          <div className="text-2xl font-bold capitalize">{health.status}</div>
+        </div>
+        <div>
+          <div className="text-3xl font-bold text-gray-900">{health.pass_rate_24h?.toFixed(1)}%</div>
+          <div className="text-sm text-gray-500">Pass rate (last 24h)</div>
+          <div className="text-xs text-gray-400 mt-1">{health.passed_24h} passed / {health.total_24h} total</div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 font-medium text-gray-700">Recent Runs</div>
+        {health.recent_runs?.length === 0
+          ? <div className="p-5 text-gray-400 text-sm">No recent runs</div>
+          : <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+                <tr>
+                  <th className="px-4 py-2 text-left">Scenario</th>
+                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-left">Latency</th>
+                  <th className="px-4 py-2 text-left">Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {health.recent_runs?.map((r: any, i: number) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 font-medium">{r.scenario}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${r.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {r.passed ? '✓ PASS' : '✗ FAIL'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-gray-500">{r.latency_ms}ms</td>
+                    <td className="px-4 py-2 text-gray-400">{r.created_at}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+        }
+      </div>
     </div>
   );
 }

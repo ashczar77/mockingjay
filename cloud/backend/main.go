@@ -102,6 +102,7 @@ func main() {
 	// Metrics
 	r.HandleFunc("/api/metrics", getMetrics).Methods("GET", "OPTIONS")
 	r.HandleFunc("/api/health", healthCheck).Methods("GET")
+	r.HandleFunc("/api/health/status", getHealthStatus).Methods("GET", "OPTIONS")
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -322,4 +323,50 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "OK")
+}
+
+func getHealthStatus(w http.ResponseWriter, r *http.Request) {
+	// Last 24h pass rate
+	var total, passed int
+	db.QueryRow(`SELECT COUNT(*), SUM(CASE WHEN passed THEN 1 ELSE 0 END) FROM test_results WHERE created_at >= datetime('now', '-24 hours')`).
+		Scan(&total, &passed)
+
+	passRate := 0.0
+	if total > 0 {
+		passRate = float64(passed) / float64(total) * 100
+	}
+
+	// Last 5 runs for trend
+	rows, _ := db.Query(`SELECT scenario, passed, latency_ms, created_at FROM test_results ORDER BY created_at DESC LIMIT 5`)
+	defer rows.Close()
+
+	type RecentRun struct {
+		Scenario  string  `json:"scenario"`
+		Passed    bool    `json:"passed"`
+		LatencyMs int64   `json:"latency_ms"`
+		CreatedAt string  `json:"created_at"`
+	}
+	recent := []RecentRun{}
+	for rows.Next() {
+		var run RecentRun
+		rows.Scan(&run.Scenario, &run.Passed, &run.LatencyMs, &run.CreatedAt)
+		recent = append(recent, run)
+	}
+
+	status := "healthy"
+	if total > 0 && passRate < 80 {
+		status = "degraded"
+	}
+	if total > 0 && passRate < 50 {
+		status = "unhealthy"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":        status,
+		"pass_rate_24h": passRate,
+		"total_24h":     total,
+		"passed_24h":    passed,
+		"recent_runs":   recent,
+	})
 }

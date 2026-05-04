@@ -18,8 +18,10 @@ Your voice AI agent lives separately — it could be a GPT-powered phone bot, an
 | `mockingjay run` | Sends scripted multi-turn conversations to your agent's HTTP endpoint. Validates that responses match expected intents, measures latency, tracks drop-off points, scores response quality. |
 | `mockingjay ab` | Runs the same scenarios against two agent variants side-by-side and declares a winner based on latency, pass rate, and task completion. |
 | `mockingjay call` | Makes a real outbound phone call via Twilio to your deployed agent. Records the call. |
+| `mockingjay calltest` | Chains call → transcribe → validate → report in one command. The full automated quality loop. |
 | `mockingjay transcribe` | Converts a call recording (local file or URL) to text using Deepgram ASR. Saves the transcript to the dashboard. |
-| Dashboard | Aggregates all results — pass rates, latency, intent accuracy, A/B comparisons, transcriptions — in a visual UI. |
+| `mockingjay monitor` | Runs test scenarios on a schedule and alerts when pass rate drops below a threshold. |
+| Dashboard | Aggregates all results — pass rates, latency, intent accuracy, A/B comparisons, transcriptions, health status — in a visual UI. |
 
 ---
 
@@ -171,6 +173,38 @@ mockingjay call \
 
 > **Note:** Twilio trial accounts can only call verified numbers and prepend a trial message. Upgrade your Twilio account to remove these restrictions.
 
+### `mockingjay calltest` — Automated call quality loop
+
+Chains call → transcribe → validate → report in a single command. Requires `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, and `DEEPGRAM_API_KEY`.
+
+```bash
+mockingjay calltest \
+  --to +15559876543 \
+  --webhook https://your-agent.com/voice \
+  --expect "hello" \
+  --api-url http://localhost:8080
+```
+
+- `--expect` — phrase that must appear in the transcript for the test to pass
+- `--api-url` — saves the transcription and pass/fail result to the dashboard
+
+### `mockingjay monitor` — Production monitoring
+
+Runs your test scenarios on a schedule and alerts when pass rate drops below a threshold.
+
+```bash
+mockingjay monitor \
+  --interval 300 \
+  --threshold 90 \
+  --alert-webhook https://hooks.slack.com/xxx \
+  --api-url http://localhost:8080
+```
+
+- `--interval` — seconds between runs (default: 60)
+- `--threshold` — pass rate % below which an alert fires (default: 80)
+- `--alert-webhook` — Slack or any webhook URL to POST alerts to
+- `--api-url` — reports each run to the dashboard
+
 ### `mockingjay transcribe` — Convert recordings to text
 
 Takes a call recording and returns a transcript with confidence score and duration. Use `--api-url` to save it to the dashboard.
@@ -308,10 +342,11 @@ mockingjay/
 - [x] Twilio integration (real phone calls)
 - [x] Audio recording & transcription (Deepgram)
 - [x] Backend API (SQLite)
-- [x] Visual dashboard (Next.js) with 4 tabs
+- [x] Visual dashboard (Next.js) with 5 tabs
+- [x] Automated call quality loop (`calltest` command)
+- [x] Production monitoring (`monitor` command)
 - [ ] User authentication
 - [ ] Stripe integration
-- [ ] Production monitoring
 - [ ] Automated call quality loop (call → transcribe → validate → report in one command)
 
 ---

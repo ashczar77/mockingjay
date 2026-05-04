@@ -80,7 +80,24 @@ func (c *Client) MakeCall(record bool) (*CallResult, error) {
 	return result, nil
 }
 
-// waitForCompletion polls the call status until it reaches a terminal state
+// GetRecordingURL fetches the first recording URL for a completed call
+func GetRecordingURL(accountSID, authToken, callSID string) (string, error) {
+	c := twilio.NewRestClientWithParams(twilio.ClientParams{
+		Username: accountSID,
+		Password: authToken,
+	})
+	resp, err := c.Api.ListRecording(&twilioApi.ListRecordingParams{
+		CallSid: &callSID,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to list recordings: %w", err)
+	}
+	if len(resp) == 0 {
+		return "", fmt.Errorf("no recordings found for call %s", callSID)
+	}
+	sid := *resp[0].Sid
+	return fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Recordings/%s.wav", accountSID, sid), nil
+}
 func (c *Client) waitForCompletion(callSID string) (*CallResult, error) {
 	deadline := time.Now().Add(5 * time.Minute)
 	for time.Now().Before(deadline) {
