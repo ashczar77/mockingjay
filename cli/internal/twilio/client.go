@@ -47,7 +47,19 @@ func (c *Client) MakeCall(record bool) (*CallResult, error) {
 	params := &twilioApi.CreateCallParams{}
 	params.SetTo(c.cfg.ToNumber)
 	params.SetFrom(c.cfg.FromNumber)
-	params.SetUrl(c.cfg.WebhookURL)
+	// Append ngrok browser-warning bypass so Twilio receives TwiML directly
+	webhookURL := c.cfg.WebhookURL
+	if len(webhookURL) > 0 {
+		sep := "?"
+		for _, ch := range webhookURL {
+			if ch == '?' {
+				sep = "&"
+				break
+			}
+		}
+		webhookURL += sep + "ngrok-skip-browser-warning=true"
+	}
+	params.SetUrl(webhookURL)
 	if record {
 		params.SetRecord(true)
 	}
