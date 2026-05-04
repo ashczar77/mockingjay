@@ -347,7 +347,6 @@ mockingjay/
 - [x] Production monitoring (`monitor` command)
 - [ ] User authentication
 - [ ] Stripe integration
-- [ ] Automated call quality loop (call → transcribe → validate → report in one command)
 
 ---
 
