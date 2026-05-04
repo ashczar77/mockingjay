@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+// Caller is the interface for sending text to a voice AI agent
+type Caller interface {
+	Call(text string) (*CallResponse, time.Duration, error)
+}
+
 // Client handles communication with voice AI agents
 type Client struct {
 	httpClient *http.Client

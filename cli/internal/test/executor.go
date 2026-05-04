@@ -40,20 +40,16 @@ type Metrics struct {
 // Executor runs test scenarios
 type Executor struct {
 	config *config.Config
-	client *voice.Client
+	client voice.Caller
 }
 
 // New creates a new test executor
 func New(cfg *config.Config) *Executor {
-	var client *voice.Client
+	var client voice.Caller
 	if cfg.Agent.Endpoint != "" {
 		client = voice.NewClient(cfg.Agent.Endpoint)
 	}
-	
-	return &Executor{
-		config: cfg,
-		client: client,
-	}
+	return &Executor{config: cfg, client: client}
 }
 
 // Run executes a single scenario

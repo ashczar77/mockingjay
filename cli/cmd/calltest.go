@@ -1,16 +1,14 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/ashczar77/mockingjay/internal/audio"
+	"github.com/ashczar77/mockingjay/internal/reporter"
 	"github.com/ashczar77/mockingjay/internal/twilio"
 	"github.com/spf13/cobra"
 )
@@ -116,28 +114,28 @@ func runCallTest() error {
 
 	// Report to backend
 	if calltestAPIURL != "" {
+		r := reporter.NewClient(calltestAPIURL)
+
 		// Save transcription
-		tPayload, _ := json.Marshal(map[string]interface{}{
-			"call_sid":         result.CallSID,
-			"audio_path":       recordingPath,
-			"text":             transcript.Text,
-			"confidence":       transcript.Confidence,
-			"duration_seconds": transcript.Duration,
+		r.ReportTranscription(reporter.Transcription{
+			CallSID:   result.CallSID,
+			AudioPath: recordingPath,
+			Text:      transcript.Text,
+			Confidence: transcript.Confidence,
+			Duration:  transcript.Duration,
 		})
-		http.Post(calltestAPIURL+"/api/transcriptions", "application/json", bytes.NewReader(tPayload))
 
 		// Save test result
 		errMsg := ""
 		if !passed {
 			errMsg = validationMsg
 		}
-		rPayload, _ := json.Marshal(map[string]interface{}{
-			"scenario":   fmt.Sprintf("calltest:%s", calltestTo),
-			"passed":     passed,
-			"latency_ms": result.Duration.Milliseconds(),
-			"error":      errMsg,
+		r.ReportRaw(reporter.RawResult{
+			Scenario:  fmt.Sprintf("calltest:%s", calltestTo),
+			Passed:    passed,
+			LatencyMs: result.Duration.Milliseconds(),
+			Error:     errMsg,
 		})
-		http.Post(calltestAPIURL+"/api/results", "application/json", bytes.NewReader(rPayload))
 		fmt.Printf("\n📤 Results saved to dashboard (%s)\n", calltestAPIURL)
 	}
 
