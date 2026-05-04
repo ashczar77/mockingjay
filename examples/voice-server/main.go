@@ -91,6 +91,7 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func handleVoice(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/xml")
+	w.Header().Set("ngrok-skip-browser-warning", "true")
 	fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="alice">Hello! This is a MockingJay test call. Your voice AI agent is working correctly. Goodbye!</Say>
