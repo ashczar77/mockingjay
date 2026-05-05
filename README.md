@@ -7,6 +7,10 @@ MockingJay is not a voice AI agent — it's the tool you use to test one. It sen
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
 
+![MockingJay dashboard — pass rates, latency, intent accuracy, and transcriptions in one view](docs/mockingjay.png)
+
+![`mockingjay run` — scripted conversations, intent validation, and quality metrics in seconds](docs/mockingjay.gif)
+
 ---
 
 ## What MockingJay Does
