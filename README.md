@@ -2,7 +2,7 @@
 
 **A testing harness for voice AI agents.**
 
-MockingJay is not a voice AI agent — it's the tool you use to test one. It sends scripted conversations to your agent, validates responses, records real calls, transcribes audio, and surfaces metrics in a dashboard. Think of it as CI/CD for voice AI.
+MockingJay is not a voice AI agent — it's the tool you use to test one. It sends scripted conversations to your agent, validates responses using LLM-based intent classification, records real calls, transcribes audio, and surfaces metrics in a dashboard.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
@@ -19,13 +19,28 @@ Your voice AI agent lives separately — it could be a GPT-powered phone bot, an
 
 | Command | What it does |
 |---|---|
-| `mockingjay run` | Sends scripted multi-turn conversations to your agent's HTTP endpoint. Validates that responses match expected intents, measures latency, tracks drop-off points, scores response quality. |
+| `mockingjay run` | Sends scripted multi-turn conversations to your agent's HTTP endpoint. Uses LLM-based intent classification to validate responses, measures latency, detects failure points, scores response quality. |
 | `mockingjay ab` | Runs the same scenarios against two agent variants side-by-side and declares a winner based on latency, pass rate, and task completion. |
 | `mockingjay call` | Makes a real outbound phone call via Twilio to your deployed agent. Records the call. |
-| `mockingjay calltest` | Chains call → transcribe → validate → report in one command. The full automated quality loop. |
+| `mockingjay calltest` | Chains call → transcribe → validate → report in one command. Uses LLM classification to validate the transcript against expected intent. |
 | `mockingjay transcribe` | Converts a call recording (local file or URL) to text using Deepgram ASR. Saves the transcript to the dashboard. |
 | `mockingjay monitor` | Runs test scenarios on a schedule and alerts when pass rate drops below a threshold. |
 | Dashboard | Aggregates all results — pass rates, latency, intent accuracy, A/B comparisons, transcriptions, health status — in a visual UI. |
+
+---
+
+## How It Works
+
+MockingJay sends each scenario step's text to your agent's HTTP endpoint and receives a text response back. It then uses an LLM (GPT-4o-mini) to classify whether the agent's response matches the expected intent — no changes to your agent required.
+
+```
+MockingJay sends:    { "text": "Hello" }
+Your agent responds: { "text": "Hi! How can I help you today?", "success": true }
+LLM classifies:      intent = "greeting", confidence = 98%
+MockingJay checks:   does "greeting" match expected "greeting"? ✓ PASS
+```
+
+Your agent only needs to return a `text` field. The `intent` field is optional — if `OPENAI_API_KEY` is set, MockingJay infers intent from the response text automatically.
 
 ---
 
@@ -35,32 +50,26 @@ Your voice AI agent lives separately — it could be a GPT-powered phone bot, an
 1. Develop your voice AI agent
 2. Write test scenarios in mockingjay.yaml
 3. Run mockingjay run on every deploy (in CI or locally)
-4. Use mockingjay call + transcribe to test the real phone experience
+4. Use mockingjay calltest to test the full phone experience end-to-end
 5. Use mockingjay ab to compare agent versions before promoting
-6. Monitor quality trends in the dashboard over time
+6. Use mockingjay monitor to track quality in production
 ```
 
-The `examples/voice-server` in this repo is a minimal stand-in agent for local testing. Replace it with your real agent's endpoint when testing in production.
+The `examples/voice-server` in this repo is a minimal stand-in agent for local testing. It also includes a `/call-bad` endpoint that intentionally returns wrong responses — useful for demonstrating MockingJay catching real failures.
 
 ### Testing call quality end-to-end
 
-`mockingjay call` only tells you whether the call connected and completed — not whether your agent said the right thing. To validate actual call quality, combine all three commands:
+`mockingjay call` only tells you whether the call connected and completed — not whether your agent said the right thing. Use `mockingjay calltest` to validate the full loop automatically:
 
 ```bash
-# Step 1: Make the call and record it
-mockingjay call --to +15559876543 --webhook https://your-agent.com/voice --record
-
-# Step 2: Transcribe the recording to get the text of what was said
-mockingjay transcribe --file recording.wav --api-url http://localhost:8080
-
-# Step 3: Review the transcript in the dashboard (http://localhost:3000)
-# or feed the transcript back into your scenarios to validate intent accuracy
-mockingjay run --api-url http://localhost:8080
+mockingjay calltest \
+  --to +15559876543 \
+  --webhook https://your-agent.com/voice \
+  --expect "greeting" \
+  --api-url http://localhost:8080
 ```
 
-The transcript gives you the actual content of the call. You can review it manually in the dashboard's Transcriptions tab, or use it to update your `mockingjay.yaml` scenarios and re-run `mockingjay run` to validate that your agent's responses matched expectations.
-
-> **Roadmap:** A future version will close this loop automatically — call → transcribe → validate → report — in a single command.
+This makes the call, transcribes the recording via Deepgram, uses the LLM to validate the transcript matches the expected intent, and saves the result to the dashboard — all in one command.
 
 ---
 
@@ -78,6 +87,8 @@ go build -o mockingjay
 cd examples/voice-server
 go run main.go
 # Starts on http://localhost:9000
+# /call      — well-behaved agent (always correct)
+# /call-bad  — broken agent (always wrong, for demo purposes)
 ```
 
 ### 3. Run Test Scenarios
@@ -103,7 +114,7 @@ cd cloud/frontend && npm install && npm run dev
 
 ### `mockingjay run` — Validate agent responses
 
-Sends each scenario's conversation steps to your agent's HTTP endpoint and checks that the returned intent matches what you expect.
+Sends each scenario's conversation steps to your agent's HTTP endpoint. Uses LLM-based intent classification (when `OPENAI_API_KEY` is set) to determine whether the agent's text response matches the expected intent.
 
 ```bash
 mockingjay run                          # uses mockingjay.yaml
@@ -113,12 +124,12 @@ mockingjay run --api-url http://localhost:8080  # report results to dashboard
 ```
 
 What it measures:
-- **Intent accuracy** — did the agent return the expected intent?
+- **Intent accuracy** — does the agent's response match the expected intent? (LLM-classified)
 - **Latency** — how long did each response take?
 - **Task completion** — did the full conversation flow succeed?
-- **Drop-off points** — which step do users most often fail at?
-- **Response quality** — completeness, sentiment, confidence scores
-- **Multi-turn coherence** — does the agent retain context across turns?
+- **Failure points** — which steps consistently fail across runs?
+- **Response quality** — completeness, sentiment, confidence (LLM-evaluated)
+- **Context retention** — does the agent maintain context across multi-turn conversations?
 - **Confusion patterns** — which inputs cause the agent to misfire?
 
 ### `mockingjay ab` — Compare two agent variants
@@ -179,17 +190,19 @@ mockingjay call \
 
 ### `mockingjay calltest` — Automated call quality loop
 
-Chains call → transcribe → validate → report in a single command. Requires `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, and `DEEPGRAM_API_KEY`.
+Chains call → transcribe → validate → report in a single command. Uses LLM classification to validate the transcript against the expected intent — not just a string search.
+
+Requires `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `DEEPGRAM_API_KEY`, and `OPENAI_API_KEY`.
 
 ```bash
 mockingjay calltest \
   --to +15559876543 \
   --webhook https://your-agent.com/voice \
-  --expect "hello" \
+  --expect "greeting" \
   --api-url http://localhost:8080
 ```
 
-- `--expect` — phrase that must appear in the transcript for the test to pass
+- `--expect` — the intent the transcript should express (validated by LLM)
 - `--api-url` — saves the transcription and pass/fail result to the dashboard
 
 ### `mockingjay monitor` — Production monitoring
@@ -232,7 +245,6 @@ version: 1
 
 agent:
   endpoint: "http://localhost:9000/call"  # your agent's HTTP endpoint
-  phone: "+15551234567"                   # or phone number for Twilio
 
 scenarios:
   - name: "basic-greeting"
@@ -263,21 +275,22 @@ thresholds:
 
 ## Voice AI API Contract
 
-For `mockingjay run` and `mockingjay ab`, your agent must accept POST requests and return JSON:
+Your agent must accept POST requests and return JSON with at minimum a `text` field:
 
 **Request:**
 ```json
 { "text": "Hello" }
 ```
 
-**Response:**
+**Minimal response (recommended):**
 ```json
 {
   "text": "Hello! How can I help you today?",
-  "intent": "greeting",
   "success": true
 }
 ```
+
+MockingJay uses the LLM to infer intent from the `text` field. If you prefer to skip LLM classification, you can also return an `intent` field and omit `OPENAI_API_KEY` — MockingJay will fall back to direct string comparison.
 
 For `mockingjay call`, your agent must expose a TwiML webhook endpoint that Twilio can fetch during the call.
 
@@ -292,42 +305,53 @@ mockingjay/
 │   │   ├── run.go          # mockingjay run
 │   │   ├── ab.go           # mockingjay ab
 │   │   ├── call.go         # mockingjay call (Twilio)
+│   │   ├── calltest.go     # mockingjay calltest (full loop)
 │   │   ├── transcribe.go   # mockingjay transcribe (Deepgram)
+│   │   ├── monitor.go      # mockingjay monitor
 │   │   └── init.go         # mockingjay init
 │   └── internal/
+│       ├── classifier/     # LLM-based intent classification (OpenAI)
 │       ├── ab/             # A/B test comparison
 │       ├── audio/          # Deepgram transcription
 │       ├── config/         # YAML config parsing
 │       ├── confusion/      # Confusion pattern detection
 │       ├── dialogue/       # Multi-turn dialogue analysis
-│       ├── dropoff/        # Drop-off point detection
+│       ├── dropoff/        # Failure point detection
 │       ├── flow/           # Conversation flow analysis
-│       ├── quality/        # Response quality scoring
+│       ├── printer/        # CLI output formatting
+│       ├── quality/        # LLM-based response quality scoring
 │       ├── reporter/       # Backend reporting client
 │       ├── test/           # Test execution engine
 │       ├── twilio/         # Twilio phone call client
 │       └── voice/          # HTTP voice AI client
 │
 ├── cloud/
-│   ├── backend/            # Go API server (SQLite)
-│   └── frontend/           # Next.js dashboard
+│   ├── backend/
+│   │   ├── handlers/       # HTTP handlers
+│   │   ├── models/         # Data models
+│   │   ├── repository/     # Database access layer
+│   │   └── main.go         # Server entry point
+│   └── frontend/           # Next.js dashboard (5 tabs)
 │
 └── examples/
-    └── voice-server/       # Stand-in agent for local testing only
+    └── voice-server/       # Stand-in agent for local testing
+                            # /call     — correct agent
+                            # /call-bad — broken agent (for demos)
 ```
 
 ---
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `TWILIO_ACCOUNT_SID` | Twilio Account SID |
-| `TWILIO_AUTH_TOKEN` | Twilio Auth Token |
-| `TWILIO_FROM_NUMBER` | Twilio phone number to call from |
-| `DEEPGRAM_API_KEY` | Deepgram API key for transcription |
-| `DB_PATH` | Backend SQLite database path (default: `./mockingjay.db`) |
-| `PORT` | Backend server port (default: `8080`) |
+| Variable | Required for | Description |
+|---|---|---|
+| `OPENAI_API_KEY` | `run`, `calltest` | LLM intent classification and quality scoring |
+| `DEEPGRAM_API_KEY` | `transcribe`, `calltest` | Speech-to-text transcription |
+| `TWILIO_ACCOUNT_SID` | `call`, `calltest` | Twilio Account SID |
+| `TWILIO_AUTH_TOKEN` | `call`, `calltest` | Twilio Auth Token |
+| `TWILIO_FROM_NUMBER` | `call`, `calltest` | Twilio phone number to call from |
+| `DB_PATH` | backend | SQLite database path (default: `./mockingjay.db`) |
+| `PORT` | backend | Backend server port (default: `8080`) |
 
 ---
 
@@ -336,19 +360,21 @@ mockingjay/
 - [x] CLI framework with parallel execution
 - [x] YAML configuration with validation
 - [x] HTTP client for voice AI testing
+- [x] LLM-based intent classification (OpenAI GPT-4o-mini)
+- [x] LLM-based response quality scoring
 - [x] Conversation flow tracking
 - [x] Intent accuracy validation
 - [x] Multi-turn dialogue analysis
-- [x] Response quality metrics
-- [x] Drop-off point detection
+- [x] Context retention detection
+- [x] Failure point detection
 - [x] Confusion pattern analysis
 - [x] A/B testing framework
 - [x] Twilio integration (real phone calls)
 - [x] Audio recording & transcription (Deepgram)
-- [x] Backend API (SQLite)
-- [x] Visual dashboard (Next.js) with 5 tabs
 - [x] Automated call quality loop (`calltest` command)
 - [x] Production monitoring (`monitor` command)
+- [x] Backend API (SQLite)
+- [x] Visual dashboard (Next.js) with 5 tabs
 - [ ] User authentication
 - [ ] Stripe integration
 
