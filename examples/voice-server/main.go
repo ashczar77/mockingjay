@@ -22,6 +22,7 @@ type CallResponse struct {
 
 func main() {
 	http.HandleFunc("/call", handleCall)
+	http.HandleFunc("/call-bad", handleCallBad) // intentionally broken agent for demos
 	http.HandleFunc("/health", handleHealth)
 	http.HandleFunc("/voice", handleVoice)
 
@@ -87,6 +88,28 @@ func handleCall(w http.ResponseWriter, r *http.Request) {
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "OK")
+}
+
+// handleCallBad simulates a broken agent that misclassifies intents.
+// Use endpoint http://localhost:9000/call-bad in mockingjay.yaml to demo failures.
+func handleCallBad(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req CallRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	time.Sleep(300 * time.Millisecond) // simulate slow response
+	// Always returns wrong intent to demonstrate MockingJay catching failures
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(CallResponse{
+		Text:    "I'm sorry, I didn't understand that.",
+		Intent:  "unknown",
+		Success: true,
+	})
 }
 
 func handleVoice(w http.ResponseWriter, r *http.Request) {

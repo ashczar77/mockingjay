@@ -14,12 +14,11 @@ func NewDialogueAnalyzer() *DialogueAnalyzer {
 
 // DialogueMetrics contains metrics for multi-turn conversations
 type DialogueMetrics struct {
-	TotalConversations   int
-	MultiTurnCount       int     // Conversations with 2+ turns
-	AvgTurnsPerConv      float64
-	MaxTurns             int
-	ContextRetention     float64 // % of conversations that maintained context
-	CoherenceScore       float64 // Overall conversation coherence
+	TotalConversations int
+	MultiTurnCount     int
+	AvgTurnsPerConv    float64
+	MaxTurns           int
+	ContextRetention   float64 // % of multi-turn conversations that maintained context
 }
 
 // Analyze analyzes dialogue patterns from conversation flows
@@ -57,13 +56,6 @@ func (d *DialogueAnalyzer) Analyze(flows []flow.ConversationFlow) DialogueMetric
 
 	if metrics.MultiTurnCount > 0 {
 		metrics.ContextRetention = float64(contextRetained) / float64(metrics.MultiTurnCount) * 100
-	}
-
-	// Calculate coherence score based on successful multi-turn conversations
-	if metrics.MultiTurnCount > 0 {
-		metrics.CoherenceScore = float64(contextRetained) / float64(metrics.MultiTurnCount) * 100
-	} else {
-		metrics.CoherenceScore = 100.0 // Single-turn conversations are always coherent
 	}
 
 	return metrics

@@ -87,7 +87,7 @@ func runTests() error {
 	p.DialogueMetrics(dialogueAnalyzer.Analyze(flows), dialogueAnalyzer.DetectContextLoss(flows))
 
 	p.QualityMetrics(quality.NewQualityAnalyzer().Analyze(flows))
-	p.DropOffAnalysis(dropoff.NewDetector().Analyze(flows))
+	p.FailurePoints(dropoff.NewDetector().Analyze(flows))
 	p.ConfusionAnalysis(confusion.NewAnalyzer().Analyze(flows))
 
 	if stats.FailedTests > 0 {

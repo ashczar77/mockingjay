@@ -154,7 +154,6 @@ func (r *SQLiteRepository) GetMetrics() (models.ConversationMetrics, error) {
 		m.IntentAccuracy = m.SuccessRate
 	}
 	m.ContextRetention = 100.0
-	m.CoherenceScore = 100.0
 	m.CompletenessScore = m.SuccessRate
 	m.SentimentScore = 75.0
 	m.ConfidenceScore = m.SuccessRate

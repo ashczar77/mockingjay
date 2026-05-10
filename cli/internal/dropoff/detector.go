@@ -6,34 +6,40 @@ import (
 	"github.com/ashczar77/mockingjay/internal/flow"
 )
 
-// Detector identifies conversation drop-off patterns
+// Detector identifies conversation failure points
 type Detector struct{}
 
-// NewDetector creates a new drop-off detector
+// NewDetector creates a new failure point detector
 func NewDetector() *Detector {
 	return &Detector{}
 }
 
-// DropOffPoint represents a point where users abandon conversations
-type DropOffPoint struct {
+// FailurePoint represents a step where conversations consistently fail
+type FailurePoint struct {
 	StepNumber  int
 	StepInput   string
 	Frequency   int
-	DropOffRate float64
+	FailureRate float64
 	Severity    string // "critical", "high", "medium", "low"
 }
 
-// DropOffAnalysis contains drop-off detection results
-type DropOffAnalysis struct {
+// DropOffPoint is an alias for FailurePoint for backwards compatibility
+type DropOffPoint = FailurePoint
+
+// FailureAnalysis contains failure point detection results
+type FailureAnalysis struct {
 	TotalConversations int
-	DropOffPoints      []DropOffPoint
-	CriticalPoints     []DropOffPoint
-	OverallDropOffRate float64
+	FailurePoints      []FailurePoint
+	CriticalPoints     []FailurePoint
+	OverallFailureRate float64
 }
 
-// Analyze detects drop-off points from conversation flows
-func (d *Detector) Analyze(flows []flow.ConversationFlow) DropOffAnalysis {
-	analysis := DropOffAnalysis{
+// DropOffAnalysis is an alias for FailureAnalysis for backwards compatibility
+type DropOffAnalysis = FailureAnalysis
+
+// Analyze detects failure points from conversation flows
+func (d *Detector) Analyze(flows []flow.ConversationFlow) FailureAnalysis {
+	analysis := FailureAnalysis{
 		TotalConversations: len(flows),
 	}
 
@@ -41,8 +47,7 @@ func (d *Detector) Analyze(flows []flow.ConversationFlow) DropOffAnalysis {
 		return analysis
 	}
 
-	// Track failures at each step
-	stepFailures := make(map[int]map[string]int) // step -> input -> count
+	stepFailures := make(map[int]map[string]int)
 	stepTotals := make(map[int]int)
 
 	for _, f := range flows {
@@ -52,62 +57,56 @@ func (d *Detector) Analyze(flows []flow.ConversationFlow) DropOffAnalysis {
 				stepFailures[stepNum] = make(map[string]int)
 			}
 			stepTotals[stepNum]++
-
 			if !step.Matched {
 				stepFailures[stepNum][step.UserInput]++
 			}
 		}
 	}
 
-	// Calculate drop-off rates
-	dropOffs := []DropOffPoint{}
-	totalDropOffs := 0
+	var failures []FailurePoint
+	totalFailures := 0
 
-	for stepNum, failures := range stepFailures {
-		for input, count := range failures {
+	for stepNum, stepMap := range stepFailures {
+		for input, count := range stepMap {
 			if count > 0 {
-				totalDropOffs += count
+				totalFailures += count
 				rate := float64(count) / float64(stepTotals[stepNum]) * 100
-
-				severity := d.calculateSeverity(rate)
-
-				dropOffs = append(dropOffs, DropOffPoint{
+				failures = append(failures, FailurePoint{
 					StepNumber:  stepNum,
 					StepInput:   input,
 					Frequency:   count,
-					DropOffRate: rate,
-					Severity:    severity,
+					FailureRate: rate,
+					Severity:    d.calculateSeverity(rate),
 				})
 			}
 		}
 	}
 
-	// Sort by frequency (most common first)
-	sort.Slice(dropOffs, func(i, j int) bool {
-		return dropOffs[i].Frequency > dropOffs[j].Frequency
+	sort.Slice(failures, func(i, j int) bool {
+		return failures[i].Frequency > failures[j].Frequency
 	})
 
-	analysis.DropOffPoints = dropOffs
-	analysis.OverallDropOffRate = float64(totalDropOffs) / float64(analysis.TotalConversations) * 100
+	analysis.FailurePoints = failures
+	analysis.OverallFailureRate = float64(totalFailures) / float64(analysis.TotalConversations) * 100
 
-	// Extract critical points
-	for _, point := range dropOffs {
-		if point.Severity == "critical" || point.Severity == "high" {
-			analysis.CriticalPoints = append(analysis.CriticalPoints, point)
+	for _, p := range failures {
+		if p.Severity == "critical" || p.Severity == "high" {
+			analysis.CriticalPoints = append(analysis.CriticalPoints, p)
 		}
 	}
 
 	return analysis
 }
 
-// calculateSeverity determines severity based on drop-off rate
 func (d *Detector) calculateSeverity(rate float64) string {
-	if rate >= 50 {
+	switch {
+	case rate >= 50:
 		return "critical"
-	} else if rate >= 25 {
+	case rate >= 25:
 		return "high"
-	} else if rate >= 10 {
+	case rate >= 10:
 		return "medium"
+	default:
+		return "low"
 	}
-	return "low"
 }

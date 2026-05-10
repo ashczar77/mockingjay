@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ashczar77/mockingjay/internal/audio"
+	"github.com/ashczar77/mockingjay/internal/classifier"
 	"github.com/ashczar77/mockingjay/internal/reporter"
 	"github.com/ashczar77/mockingjay/internal/twilio"
 	"github.com/spf13/cobra"
@@ -93,16 +94,37 @@ func runCallTest() error {
 	fmt.Printf("   ✓ Transcript: %q\n", transcript.Text)
 	fmt.Printf("   ✓ Confidence: %.1f%%, Duration: %.1fs\n\n", transcript.Confidence*100, transcript.Duration)
 
-	// Step 3: Validate
+	// Step 3: Validate using LLM classifier if available, else string match
 	fmt.Println("✅ Step 3/3: Validating...")
 	passed := true
 	validationMsg := "no validation criteria specified"
+
 	if calltestExpect != "" {
-		passed = strings.Contains(strings.ToLower(transcript.Text), strings.ToLower(calltestExpect))
-		if passed {
-			validationMsg = fmt.Sprintf("transcript contains expected phrase %q", calltestExpect)
+		if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+			c := classifier.New(key)
+			result2, err := c.ClassifyTranscript(transcript.Text, calltestExpect)
+			if err == nil {
+				passed = result2.Confidence >= 0.7
+				if passed {
+					validationMsg = fmt.Sprintf("transcript matches intent %q (confidence: %.0f%% — %s)",
+						calltestExpect, result2.Confidence*100, result2.Reasoning)
+				} else {
+					validationMsg = fmt.Sprintf("transcript does not match intent %q (confidence: %.0f%% — %s)",
+						calltestExpect, result2.Confidence*100, result2.Reasoning)
+				}
+			} else {
+				// LLM failed, fall back to string match
+				passed = strings.Contains(strings.ToLower(transcript.Text), strings.ToLower(calltestExpect))
+				validationMsg = fmt.Sprintf("string match for %q: %v", calltestExpect, passed)
+			}
 		} else {
-			validationMsg = fmt.Sprintf("transcript missing expected phrase %q", calltestExpect)
+			// No API key, use string match
+			passed = strings.Contains(strings.ToLower(transcript.Text), strings.ToLower(calltestExpect))
+			if passed {
+				validationMsg = fmt.Sprintf("transcript contains expected phrase %q", calltestExpect)
+			} else {
+				validationMsg = fmt.Sprintf("transcript missing expected phrase %q", calltestExpect)
+			}
 		}
 	}
 

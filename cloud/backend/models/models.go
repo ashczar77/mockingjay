@@ -38,7 +38,6 @@ type ConversationMetrics struct {
 	AvgStepsCompleted float64 `json:"avg_steps_completed"`
 	MultiTurnCount    int     `json:"multi_turn_count"`
 	ContextRetention  float64 `json:"context_retention"`
-	CoherenceScore    float64 `json:"coherence_score"`
 	CompletenessScore float64 `json:"completeness_score"`
 	SentimentScore    float64 `json:"sentiment_score"`
 	ConfidenceScore   float64 `json:"confidence_score"`

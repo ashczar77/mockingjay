@@ -75,7 +75,6 @@ func (p *Printer) DialogueMetrics(metrics dialogue.DialogueMetrics, contextLoss 
 	p.printf("  Avg turns per conversation: %.1f\n", metrics.AvgTurnsPerConv)
 	p.printf("  Max turns: %d\n", metrics.MaxTurns)
 	p.printf("  Context retention: %.1f%%\n", metrics.ContextRetention)
-	p.printf("  Coherence score: %.1f%%\n", metrics.CoherenceScore)
 	if len(contextLoss) > 0 {
 		p.printf("  Context loss detected:\n")
 		for _, loss := range contextLoss {
@@ -91,27 +90,24 @@ func (p *Printer) QualityMetrics(metrics quality.QualityMetrics) {
 	p.printf("  Completeness: %.1f%%\n", metrics.CompletenessScore)
 	p.printf("  Positive sentiment: %.1f%%\n", metrics.SentimentScore)
 	p.printf("  Confidence: %.1f%%\n", metrics.ConfidenceScore)
-	if metrics.VagueResponses > 0 {
-		p.printf("  ⚠️  Vague responses: %d\n", metrics.VagueResponses)
-	}
 	if metrics.EmptyResponses > 0 {
 		p.printf("  ⚠️  Empty responses: %d\n", metrics.EmptyResponses)
 	}
 }
 
-// DropOffAnalysis prints drop-off detection results
-func (p *Printer) DropOffAnalysis(analysis dropoff.DropOffAnalysis) {
-	if len(analysis.DropOffPoints) == 0 {
+// FailurePoints prints failure point detection results
+func (p *Printer) FailurePoints(analysis dropoff.FailureAnalysis) {
+	if len(analysis.FailurePoints) == 0 {
 		return
 	}
-	p.printf("\n🚨 Drop-off Detection:\n")
-	p.printf("  Overall drop-off rate: %.1f%%\n", analysis.OverallDropOffRate)
-	p.printf("  Drop-off points found: %d\n", len(analysis.DropOffPoints))
+	p.printf("\n🚨 Failure Points:\n")
+	p.printf("  Overall failure rate: %.1f%%\n", analysis.OverallFailureRate)
+	p.printf("  Failure points found: %d\n", len(analysis.FailurePoints))
 	if len(analysis.CriticalPoints) > 0 {
 		p.printf("  ⚠️  Critical issues: %d\n", len(analysis.CriticalPoints))
-		p.printf("\n  Critical drop-off points:\n")
+		p.printf("\n  Critical failure points:\n")
 		for _, point := range analysis.CriticalPoints {
-			p.printf("    Step %d: \"%s\" - %.1f%% drop-off (%s)\n", point.StepNumber, point.StepInput, point.DropOffRate, point.Severity)
+			p.printf("    Step %d: \"%s\" - %.1f%% failure rate (%s)\n", point.StepNumber, point.StepInput, point.FailureRate, point.Severity)
 		}
 	}
 }

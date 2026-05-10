@@ -10,7 +10,6 @@ interface ConversationMetrics {
   avg_steps_completed: number;
   multi_turn_count: number;
   context_retention: number;
-  coherence_score: number;
   completeness_score: number;
   sentiment_score: number;
   confidence_score: number;
@@ -144,9 +143,8 @@ function MetricsTab({ metrics }: { metrics: ConversationMetrics }) {
       </Section>
 
       <Section title="🔄 Multi-turn Dialogue">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
           <MetricCard label="Context Retention" value={`${metrics.context_retention.toFixed(1)}%`} color="green" />
-          <MetricCard label="Coherence Score" value={`${metrics.coherence_score.toFixed(1)}%`} color="blue" />
           <MetricCard label="Multi-turn Count" value={String(metrics.multi_turn_count)} color="purple" />
         </div>
       </Section>
