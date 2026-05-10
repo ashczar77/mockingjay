@@ -100,8 +100,8 @@ func runCallTest() error {
 	validationMsg := "no validation criteria specified"
 
 	if calltestExpect != "" {
-		if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-			c := classifier.New(key)
+		c := classifier.New()
+		if c != nil {
 			result2, err := c.ClassifyTranscript(transcript.Text, calltestExpect)
 			if err == nil {
 				passed = result2.Confidence >= 0.7
@@ -113,12 +113,11 @@ func runCallTest() error {
 						calltestExpect, result2.Confidence*100, result2.Reasoning)
 				}
 			} else {
-				// LLM failed, fall back to string match
 				passed = strings.Contains(strings.ToLower(transcript.Text), strings.ToLower(calltestExpect))
 				validationMsg = fmt.Sprintf("string match for %q: %v", calltestExpect, passed)
 			}
 		} else {
-			// No API key, use string match
+			// No LLM configured, fall back to string match
 			passed = strings.Contains(strings.ToLower(transcript.Text), strings.ToLower(calltestExpect))
 			if passed {
 				validationMsg = fmt.Sprintf("transcript contains expected phrase %q", calltestExpect)

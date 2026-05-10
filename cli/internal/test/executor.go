@@ -55,15 +55,10 @@ func New(cfg *config.Config) *Executor {
 		os.Exit(1)
 	}
 
-	var c *classifier.Classifier
-	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		c = classifier.New(key)
-	}
-
 	return &Executor{
 		config:     cfg,
 		client:     voice.NewClient(cfg.Agent.Endpoint),
-		classifier: c,
+		classifier: classifier.New(),
 	}
 }
 

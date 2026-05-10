@@ -1,8 +1,6 @@
 package quality
 
 import (
-	"os"
-
 	"github.com/ashczar77/mockingjay/internal/classifier"
 	"github.com/ashczar77/mockingjay/internal/flow"
 )
@@ -24,11 +22,7 @@ type QualityAnalyzer struct {
 
 // NewQualityAnalyzer creates a new quality analyzer
 func NewQualityAnalyzer() *QualityAnalyzer {
-	var c *classifier.Classifier
-	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		c = classifier.New(key)
-	}
-	return &QualityAnalyzer{classifier: c}
+	return &QualityAnalyzer{classifier: classifier.New()}
 }
 
 // Analyze evaluates response quality from conversation flows

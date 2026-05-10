@@ -31,7 +31,7 @@ Your voice AI agent lives separately — it could be a GPT-powered phone bot, an
 
 ## How It Works
 
-MockingJay sends each scenario step's text to your agent's HTTP endpoint and receives a text response back. It then uses an LLM (GPT-4o-mini) to classify whether the agent's response matches the expected intent — no changes to your agent required.
+MockingJay sends each scenario step's text to your agent's HTTP endpoint and receives a text response back. It then uses an LLM to classify whether the agent's response matches the expected intent — no changes to your agent required.
 
 ```
 MockingJay sends:    { "text": "Hello" }
@@ -40,7 +40,19 @@ LLM classifies:      intent = "greeting", confidence = 98%
 MockingJay checks:   does "greeting" match expected "greeting"? ✓ PASS
 ```
 
-Your agent only needs to return a `text` field. The `intent` field is optional — if `OPENAI_API_KEY` is set, MockingJay infers intent from the response text automatically.
+Your agent only needs to return a `text` field. The `intent` field is optional — if an LLM provider is configured, MockingJay infers intent from the response text automatically.
+
+### Supported LLM Providers
+
+MockingJay works with any of these LLM backends for intent classification and quality scoring:
+
+| Provider | Set these env vars | Model used |
+|---|---|---|
+| **OpenAI** (default) | `OPENAI_API_KEY` | GPT-4o-mini |
+| **Anthropic** | `LLM_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` | Claude Haiku |
+| **Ollama** (local) | `LLM_PROVIDER=ollama`, optionally `OLLAMA_MODEL`, `OLLAMA_HOST` | llama3 (default) |
+
+If no LLM is configured, MockingJay falls back to comparing the `intent` field in your agent's response directly.
 
 ---
 
@@ -346,6 +358,10 @@ mockingjay/
 | Variable | Required for | Description |
 |---|---|---|
 | `OPENAI_API_KEY` | `run`, `calltest` | LLM intent classification and quality scoring |
+| `LLM_PROVIDER` | optional | LLM backend: `openai` (default), `anthropic`, or `ollama` |
+| `ANTHROPIC_API_KEY` | `run`, `calltest` | Required when `LLM_PROVIDER=anthropic` |
+| `OLLAMA_MODEL` | optional | Ollama model name (default: `llama3`) |
+| `OLLAMA_HOST` | optional | Ollama server URL (default: `http://localhost:11434`) |
 | `DEEPGRAM_API_KEY` | `transcribe`, `calltest` | Speech-to-text transcription |
 | `TWILIO_ACCOUNT_SID` | `call`, `calltest` | Twilio Account SID |
 | `TWILIO_AUTH_TOKEN` | `call`, `calltest` | Twilio Auth Token |
